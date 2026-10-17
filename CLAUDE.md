@@ -15,6 +15,14 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 - **No weather / cloud forecast.**
 - District picker; everything else in the UI stays as in the prototype.
 
+## Design (decided with Sarah)
+
+- Fried-egg theme ("sunny side up"): the sun is a fried egg on the header sun-path arc; sunny terraces on the map are little fried eggs; shaded ones are mint dots, partly sunny get a yolk pie.
+- Colours: mint page, pale lemon sunlit ground, soft mint shadows, pastel pink buildings; bright mint / pink / yellow / yolk orange (#FFA51F) only on markers, buttons and tags. Neutral charcoal outlines (#2B2B2B), never dark blue.
+- Dark mode: neutral near-black (#18181A), not blue. Sunny ground mustard, shade dark green.
+- Fonts: Bagel Fat One (display), Figtree (everything else). No monospace, no all-caps labels.
+- Sticker look: thick outlines with flat offset shadows on map, controls and selected terrace.
+
 ## Layout
 
 - `pipeline/build.py` — stdlib-only Python. Fetches terraces, buildings, OSM names and streets; writes `web/data/districts/<NN>.json` and `web/data/index.json`. `--fixtures DIR` reads cached responses instead of the network.

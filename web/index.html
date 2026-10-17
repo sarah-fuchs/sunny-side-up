@@ -6,7 +6,7 @@
 <title>Sonnenseite Wien</title>
 <meta name="theme-color" content="#E4F7EF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='%23FFE347' stroke='%2326215E' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-17 -17 34 34'%3E%3Cpath d='M16.6 0.0 L16.3 3.7 L14.1 6.8 L11.3 9.0 L8.7 10.9 L6.0 12.5 L3.0 13.2 L0.0 12.9 L-2.9 12.7 L-6.2 13.0 L-10.2 12.8 L-13.6 10.8 L-14.8 7.1 L-13.8 3.2 L-12.4 0.0 L-12.0 -2.7 L-12.1 -5.8 L-11.4 -9.1 L-9.4 -11.7 L-6.5 -13.6 L-3.4 -15.1 L-0.0 -16.1 L3.6 -15.6 L6.3 -13.2 L7.9 -9.9 L9.1 -7.3 L11.3 -5.5 L14.4 -3.3Z' fill='%23fff' stroke='%232B2B2B' stroke-width='2.5'/%3E%3Ccircle cx='1' cy='-1' r='7' fill='%23FFA51F' stroke='%232B2B2B' stroke-width='2.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:ital,wght@0,400;0,500;0,700;0,800;1,500&display=swap">
@@ -14,7 +14,7 @@
 /* Freibad poster: mint page, lemon sunlight, mint shade, pink buildings, indigo ink outlines with flat sticker shadows */
 :root{
   --paper:#E4F7EF; --card:#FFFFFF; --ink:#2B2B2B; --muted:#62646A; --hair:rgba(43,43,43,.16);
-  --yellow:#FFE347; --yellow-ink:#5C4700; --mint:#8FEACF; --mint-deep:#16A985; --pink:#FF5FAE; --pink-soft:#FFE0EF;
+  --yellow:#FFE347; --yolk:#FFA51F; --yellow-ink:#5C4700; --mint:#8FEACF; --mint-deep:#16A985; --pink:#FF5FAE; --pink-soft:#FFE0EF;
   --street:#FFF6C9; --shade:#A9E3D2; --building:#F7D3E3; --building-tall:#F0B3CF;
   --shadow-a:.78; --lift:4px 4px 0 var(--ink); --lift-s:3px 3px 0 var(--ink);
   --display:"Bagel Fat One", "Cooper Black", Georgia, serif;
@@ -23,12 +23,12 @@
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#18181A; --card:#242427; --ink:#F4F4F1; --muted:#B4B4AE; --hair:rgba(244,244,241,.18);
-  --yellow:#FFE347; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
+  --yellow:#FFE347; --yolk:#FFAE2E; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
   --street:#8A782A; --shade:#173A33; --building:#5B3C4B; --building-tall:#4A2F3D;
   --shadow-a:.8; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }}
 :root[data-theme="dark"]{
   --paper:#18181A; --card:#242427; --ink:#F4F4F1; --muted:#B4B4AE; --hair:rgba(244,244,241,.18);
-  --yellow:#FFE347; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
+  --yellow:#FFE347; --yolk:#FFAE2E; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
   --street:#8A782A; --shade:#173A33; --building:#5B3C4B; --building-tall:#4A2F3D;
   --shadow-a:.8; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }
 
@@ -44,7 +44,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(2.1rem,9vw,3.1rem)
   text-shadow:3px 3px 0 var(--pink)}
 .sub{font-size:.95rem;font-weight:500;color:var(--muted);margin-top:8px}
 .sunpath{grid-area:sun;width:150px;text-align:center}
-.sunpath svg{display:block;width:150px;height:auto;overflow:visible}
+.sunpath svg{display:block;width:150px;height:auto;overflow:visible;margin-top:6px}
 .readout{font-size:.86rem;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
 .picker{grid-area:pick;justify-self:start;display:flex;align-items:center;gap:10px}
 .picker span{font-weight:700;font-size:.95rem}
@@ -62,7 +62,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(2.1rem,9vw,3.1rem)
 .mapwrap{position:relative;border-radius:26px;overflow:hidden;background:var(--street);border:2.5px solid var(--ink);box-shadow:var(--lift);min-height:0;touch-action:none}
 canvas{display:block;width:100%;height:100%}
 .maptag{position:absolute;left:12px;bottom:12px;font-size:.78rem;font-weight:700;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:999px;padding:4px 11px;pointer-events:none}
-.compass{position:absolute;right:12px;top:12px;width:46px;height:46px;border-radius:50%;background:var(--yellow);border:2.5px solid var(--ink);display:grid;place-items:center;pointer-events:none;box-shadow:var(--lift-s)}
+.compass{position:absolute;right:12px;top:12px;width:46px;height:46px;border-radius:50%;background:var(--yolk);border:2.5px solid var(--ink);display:grid;place-items:center;pointer-events:none;box-shadow:var(--lift-s)}
 .compass path{fill:#2B2B2B}
 .notice{position:absolute;left:12px;top:12px;right:70px;font-size:.88rem;font-weight:600;background:var(--pink-soft);border:2px solid var(--ink);border-radius:14px;padding:8px 11px;color:var(--ink)}
 
@@ -76,8 +76,8 @@ input[type=date].chip{font-weight:600}
 :focus-visible{outline:3px solid var(--pink);outline-offset:3px}
 .timebig{font-family:var(--display);font-size:2.4rem;line-height:1;font-variant-numeric:tabular-nums;margin-left:auto;color:var(--ink)}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:34px;margin:0;background:transparent;cursor:pointer}
-input[type=range]::-webkit-slider-runnable-track{height:14px;border-radius:999px;border:2px solid var(--ink);background:linear-gradient(90deg,var(--mint),var(--yellow) 50%,var(--mint))}
-input[type=range]::-moz-range-track{height:10px;border-radius:999px;border:2px solid var(--ink);background:linear-gradient(90deg,var(--mint),var(--yellow) 50%,var(--mint))}
+input[type=range]::-webkit-slider-runnable-track{height:14px;border-radius:999px;border:2px solid var(--ink);background:linear-gradient(90deg,var(--mint),var(--yolk) 50%,var(--mint))}
+input[type=range]::-moz-range-track{height:10px;border-radius:999px;border:2px solid var(--ink);background:linear-gradient(90deg,var(--mint),var(--yolk) 50%,var(--mint))}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-10px;border-radius:50%;background:var(--pink);border:3px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
 input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--pink);border:3px solid var(--ink)}
 .scale{display:flex;justify-content:space-between;font-size:.82rem;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:-4px}
@@ -90,14 +90,14 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;bac
 .item{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;
   background:var(--card);border:2px solid var(--ink);border-left-width:12px;border-left-color:var(--mint);border-radius:18px;
   padding:11px 14px 12px 14px;cursor:pointer;text-align:left;color:inherit;font:inherit;width:100%}
-.item.sun{border-left-color:var(--yellow)}
-.item.part{border-left-color:var(--yellow);border-image:none}
+.item.sun{border-left-color:var(--yolk)}
+.item.part{border-left-color:var(--yolk);border-image:none}
 .item.part::before{content:"";position:absolute;left:-12px;top:50%;bottom:-2px;width:12px;background:var(--mint);border-bottom-left-radius:16px}
 .item.sel{box-shadow:var(--lift);background:var(--pink-soft)}
 .name{font-weight:800;font-size:1.05rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .addr{grid-column:1;font-size:.88rem;color:var(--muted);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .status{font-weight:700;font-size:.9rem;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}
-.status.sun{color:var(--ink);background:var(--yellow);border-radius:999px;padding:1px 9px;border:1.5px solid var(--ink)}
+.status.sun{color:#2B2B2B;background:var(--yolk);border-radius:999px;padding:1px 9px;border:1.5px solid var(--ink)}
 :root[data-theme="dark"] .status.sun{color:#2B2B2B}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .status.sun{color:#2B2B2B} }
 .strip{grid-column:1 / span 2;position:relative;height:10px;border-radius:999px;background:var(--paper);border:1.5px solid var(--ink);overflow:hidden;margin-top:8px}
@@ -120,10 +120,10 @@ footer{font-size:.82rem;color:var(--muted);line-height:1.5;max-width:68ch}
       <div class="sub" id="sub">Schanigärten in the sun, Wien</div>
     </div>
     <div class="sunpath" aria-hidden="true">
-      <svg viewBox="0 0 150 78" id="sunsvg">
+      <svg viewBox="0 -14 150 92" id="sunsvg">
         <path d="M10 66 A65 56 0 0 1 140 66" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="2 6" stroke-linecap="round"/>
         <line x1="2" y1="66" x2="148" y2="66" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>
-        <circle id="sundisc" cx="75" cy="10" r="11" fill="var(--yellow)" stroke="var(--ink)" stroke-width="2.5"/>
+        <g id="egg" transform="translate(75 10)"><path d="M17.2 0.0 L16.9 3.9 L14.6 7.0 L11.7 9.3 L9.0 11.3 L6.2 13.0 L3.1 13.7 L0.0 13.4 L-3.0 13.1 L-6.5 13.4 L-10.6 13.2 L-14.0 11.2 L-15.3 7.4 L-14.3 3.3 L-12.8 0.0 L-12.4 -2.8 L-12.5 -6.0 L-11.8 -9.4 L-9.7 -12.1 L-6.8 -14.1 L-3.6 -15.6 L-0.0 -16.6 L3.7 -16.1 L6.6 -13.6 L8.2 -10.2 L9.4 -7.5 L11.7 -5.6 L14.9 -3.4Z" fill="#FFFFFF" stroke="#2B2B2B" stroke-width="2.5" stroke-linejoin="round"/><circle cx="1" cy="-1" r="7.5" fill="var(--yolk)" stroke="#2B2B2B" stroke-width="2.5"/><ellipse cx="-1.6" cy="-3.6" rx="2.4" ry="1.5" fill="#FFFFFF" opacity=".9"/></g>
         <text id="sunrise" x="10" y="78" font-size="10" font-weight="700" text-anchor="middle" fill="var(--muted)" font-family="Figtree,sans-serif"></text>
         <text id="sunset" x="140" y="78" font-size="10" font-weight="700" text-anchor="middle" fill="var(--muted)" font-family="Figtree,sans-serif"></text>
       </svg>
@@ -318,13 +318,15 @@ function statusFor(row, m){
 const cv=$('map'), ctx=cv.getContext('2d'), wrap=$('mapwrap');
 const off=document.createElement('canvas'), octx=off.getContext('2d');
 let view={cx:0, cy:0, s:2.2, fitted:false}, W=0, H=0, DPR=1, colors={};
-function readColors(){ const cs=getComputedStyle(document.documentElement); for(const k of ['street','building','building-tall','shade','yellow','mint','pink','ink','muted','card','paper']) colors[k]=cs.getPropertyValue('--'+k).trim(); colors.shadeA=parseFloat(cs.getPropertyValue('--shadow-a'))||.8; }
+function readColors(){ const cs=getComputedStyle(document.documentElement); for(const k of ['yolk','street','building','building-tall','shade','yellow','mint','pink','ink','muted','card','paper']) colors[k]=cs.getPropertyValue('--'+k).trim(); colors.shadeA=parseFloat(cs.getPropertyValue('--shadow-a'))||.8; }
 function fit(){ if(!TERRACES.length||!W) return; const xs=TERRACES.map(t=>t.x), ys=TERRACES.map(t=>t.y); const x0=Math.min(...xs)-30,x1=Math.max(...xs)+30,y0=Math.min(...ys)-30,y1=Math.max(...ys)+30;
   view.cx=(x0+x1)/2; view.cy=(y0+y1)/2; view.s=Math.min(W/(x1-x0), H/(y1-y0)); view.fitted=true; }
 function resize(){ const r=wrap.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1); W=r.width; H=r.height;
   for(const c of [cv,off]){ c.width=Math.round(W*DPR); c.height=Math.round(H*DPR); } if(!view.fitted) fit(); draw(); }
 const sx = x => W/2 + (x-view.cx)*view.s, sy = y => H/2 - (y-view.cy)*view.s;
 function addRing(c,pts,ox,oy){ for(let i=0;i<pts.length;i++){ const X=sx(pts[i][0]+ox),Y=sy(pts[i][1]+oy); i?c.lineTo(X,Y):c.moveTo(X,Y); } c.closePath(); }
+function eggWhite(c,X,Y,r,seed){ const ph=(seed*1.7)%6.28; c.beginPath();
+  for(let k=0;k<=28;k++){ const a=k/28*2*Math.PI, rr=r*(1+.13*Math.sin(3*a+ph)+.07*Math.cos(5*a+ph*.5)); const x=X+rr*Math.cos(a), y=Y+rr*Math.sin(a); k?c.lineTo(x,y):c.moveTo(x,y); } c.closePath(); }
 function path(c,pts,ox=0,oy=0){ c.beginPath(); pts.forEach(([x,y],i)=>{ const X=sx(x+ox),Y=sy(y+oy); i?c.lineTo(X,Y):c.moveTo(X,Y); }); c.closePath(); }
 const isDark=()=>document.documentElement.matches('[data-theme="dark"]')||(!document.documentElement.matches('[data-theme="light"]')&&matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -378,11 +380,18 @@ function draw(){
   const labels=[], R=Math.max(6,Math.min(11,view.s*2.6)), m=R/view.s+2, vis=[];
   for(const t of TERRACES){ if(t.x<vx0-m||t.x>vx1+m||t.y<vy0-m||t.y>vy1+m) continue; vis.push(t);
     const f=litFraction(t,sun), X=sx(t.x), Y=sy(t.y);
-    if(selected===t.id){ ctx.beginPath(); ctx.arc(X,Y,R+5,0,7); ctx.strokeStyle=colors.pink; ctx.lineWidth=4; ctx.stroke(); }
-    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.fillStyle = f>=.5?colors.yellow:colors.mint; ctx.fill();
-    if(f>0&&f<.5){ ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,R,-Math.PI/2,-Math.PI/2+f*2*Math.PI); ctx.closePath(); ctx.fillStyle=colors.yellow; ctx.fill(); }
-    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.lineWidth=2.5; ctx.strokeStyle=f>=.5?'#2B2B2B':colors.ink; ctx.stroke();
-    if(selected===t.id||(t.name&&view.s>0.9)||view.s>3.6) labels.push({t,f,X,Y,R,sel:selected===t.id});
+    const sunny=f>=.5, Rr=sunny?R*1.8:R*.85;
+    if(selected===t.id){ ctx.beginPath(); ctx.arc(X,Y,Rr+5,0,7); ctx.strokeStyle=colors.pink; ctx.lineWidth=4; ctx.stroke(); }
+    if(sunny){ // a fried egg: wobbly white, round yolk, a glint
+      eggWhite(ctx,X,Y,Rr,t.id); ctx.fillStyle='#FFFFFF'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#2B2B2B'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(X+R*.1,Y-R*.1,R*.78,0,7); ctx.fillStyle=colors.yolk; ctx.fill(); ctx.lineWidth=2; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(X-R*.22,Y-R*.42,R*.25,R*.16,-.5,0,7); ctx.fillStyle='#FFFFFF'; ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.arc(X,Y,Rr,0,7); ctx.fillStyle=colors.mint; ctx.fill();
+      if(f>0){ ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,Rr,-Math.PI/2,-Math.PI/2+f*2*Math.PI); ctx.closePath(); ctx.fillStyle=colors.yolk; ctx.fill(); }
+      ctx.beginPath(); ctx.arc(X,Y,Rr,0,7); ctx.lineWidth=2.5; ctx.strokeStyle='#2B2B2B'; ctx.stroke();
+    }
+    if(selected===t.id||(t.name&&view.s>0.9)||view.s>3.6) labels.push({t,f,X,Y,R:Rr,sel:selected===t.id});
   }
   // labels: selected first, then sunny; try right, left, above, below; skip if no free spot
   labels.sort((a,b)=>b.sel-a.sel || b.f-a.f);
@@ -419,7 +428,7 @@ function tap(px,py){ let best=null,bd=22; for(const t of TERRACES){ const d=Math
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 function renderStrip(c,row){ const r=c.parentElement.getBoundingClientRect(); const w=Math.round(r.width*DPR),h=Math.round(r.height*DPR); if(!w) return; c.width=w; c.height=h; const x=c.getContext('2d');
   const a=dayCache.rise??360, z=dayCache.set??1080, span=z-a; x.clearRect(0,0,w,h);
-  if(row.fr) row.fr.forEach((f,i)=>{ const m=dayCache.steps[i].m; if(m<a||m>z||f<=0) return; x.globalAlpha=f>=.5?1:.5; x.fillStyle=colors.yellow; x.fillRect((m-a)/span*w,0,Math.ceil(10/span*w)+1,h); });
+  if(row.fr) row.fr.forEach((f,i)=>{ const m=dayCache.steps[i].m; if(m<a||m>z||f<=0) return; x.globalAlpha=f>=.5?1:.5; x.fillStyle=colors.yolk; x.fillRect((m-a)/span*w,0,Math.ceil(10/span*w)+1,h); });
   x.globalAlpha=1; if(minute>=a&&minute<=z){ x.fillStyle=colors.pink; x.fillRect((minute-a)/span*w-1.5*DPR,0,3*DPR,h); } }
 function listOrder(){
   const rows=dayCache.rows.map(r=>({r,s:statusFor(r,minute),total:r.fr?r.fr.filter(f=>f>=.5).length*10:-1}));
@@ -457,8 +466,8 @@ function updateReadout(){
   const dir=dirs[Math.round(s.az/RAD/22.5)%16];
   const names={N:'north',NNE:'north-north-east',NE:'north-east',ENE:'east-north-east',E:'east',ESE:'east-south-east',SE:'south-east',SSE:'south-south-east',S:'south',SSW:'south-south-west',SW:'south-west',WSW:'west-south-west',W:'west',WNW:'west-north-west',NW:'north-west',NNW:'north-north-west'};
   $('readout').textContent = s.alt>0 ? `${(s.alt/RAD).toFixed(0)}° high in the ${names[dir]}` : `Below the horizon`;
-  const p=Math.max(0,Math.min(1,(minute-dayCache.rise)/((dayCache.set-dayCache.rise)||1))), th=Math.PI*(1-p), disc=$('sundisc');
-  disc.setAttribute('cx',(75+65*Math.cos(th)).toFixed(1)); disc.setAttribute('cy',(66-56*Math.sin(th)).toFixed(1));
+  const p=Math.max(0,Math.min(1,(minute-dayCache.rise)/((dayCache.set-dayCache.rise)||1))), th=Math.PI*(1-p), disc=$('egg');
+  disc.setAttribute('transform',`translate(${(75+65*Math.cos(th)).toFixed(1)} ${(66-56*Math.sin(th)).toFixed(1)}) scale(1.45) rotate(${(p*40-20).toFixed(0)})`);
   disc.style.opacity = s.alt>0 ? 1 : .35;
   $('sunrise').textContent=fmt(dayCache.rise); $('sunset').textContent=fmt(dayCache.set);
   $('timebig').textContent=fmt(minute);
