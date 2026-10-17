@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+pipeline/cache/
+tests/out/
+node_modules/
+tests/fixtures/

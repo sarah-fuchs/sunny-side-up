@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sonnenseite Wien</title>
+<meta name="theme-color" content="#ECEFF2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E131B" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%23E99C00'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen sun study — header readout, live shadow map, time scrubber, terraces ranked by sun */
+:root{
+  --bg:#ECEFF2; --surface:#FAFBFC; --ink:#1B2230; --muted:#5D6778; --line:#D3D9E0;
+  --building:#3A4354; --building-top:#4B5568; --ground:#E2E6EA; --street:#FFF3CF;
+  --shade:#3E4A86; --sun:#E99C00; --sun-ink:#7A4E00; --sun-soft:#FFE6A6; --cool:#7F8BA8;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E131B; --surface:#151C27; --ink:#E6EAF0; --muted:#93A0B3; --line:#252F3F;
+  --building:#3C4859; --building-top:#4A586C; --ground:#18202B; --street:#4A3F1F;
+  --shade:#0A0E15; --sun:#FFB81F; --sun-ink:#FFD775; --sun-soft:#3D3214; --cool:#6F7C98; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E131B; --surface:#151C27; --ink:#E6EAF0; --muted:#93A0B3; --line:#252F3F;
+  --building:#3C4859; --building-top:#4A586C; --ground:#18202B; --street:#4A3F1F;
+  --shade:#0A0E15; --sun:#FFB81F; --sun-ink:#FFD775; --sun-soft:#3D3214; --cool:#6F7C98; color-scheme:dark }
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;margin:0}
+.app{display:flex;flex-direction:column;max-width:1200px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box;gap:10px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:1.65rem;letter-spacing:-.02em;line-height:1;margin:0;text-wrap:balance}
+h1 span{color:var(--sun)}
+.sub{color:var(--muted);font-size:.8rem;margin-top:4px}
+.readout{font-family:var(--mono);font-size:.76rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:8px}
+.readout b{color:var(--ink);font-weight:500}
+.picker{display:flex;flex-direction:column;gap:3px;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.picker select{font:500 .85rem var(--body);letter-spacing:0;text-transform:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 30px 7px 12px;max-width:min(78vw,300px);
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 52%,calc(100% - 11px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+.main{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start}
+.mapwrap{height:clamp(300px,54svh,560px)}
+@media (min-width:860px){ .main{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+  .mapwrap{grid-row:1 / span 2;position:sticky;top:12px;height:min(720px,calc(100svh - 120px))} .controls{grid-column:2} .list{grid-column:2} }
+.mapwrap{position:relative;border-radius:14px;overflow:hidden;background:var(--ground);border:1px solid var(--line);min-height:0;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+.maptag{position:absolute;left:10px;bottom:10px;font-family:var(--mono);font-size:.7rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 7px;pointer-events:none}
+.compass{position:absolute;right:10px;top:10px;width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;pointer-events:none}
+.notice{position:absolute;left:10px;top:10px;right:64px;font-size:.78rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 9px;color:var(--ink)}
+.controls{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{font:500 .8rem var(--body);border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chip:focus-visible,input:focus-visible,select:focus-visible,.item:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+.timebig{font-family:var(--display);font-weight:600;font-size:1.5rem;font-variant-numeric:tabular-nums;margin-left:auto}
+input[type=range]{width:100%;accent-color:var(--sun);height:28px;margin:0}
+.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:6px;padding-bottom:8px}
+.listhead{display:flex;justify-content:space-between;align-items:baseline;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:2px 2px 0}
+.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px;cursor:pointer;text-align:left;color:inherit;font:inherit;width:100%;box-sizing:border-box}
+.item.sel{border-color:var(--sun);box-shadow:0 0 0 1px var(--sun) inset}
+.dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--cool);box-sizing:border-box}
+.dot.sun{background:var(--sun);border-color:var(--sun)}
+.dot.part{background:linear-gradient(90deg,var(--sun) 50%,transparent 50%);border-color:var(--sun)}
+.name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name small{font-weight:400;color:var(--muted)}
+.status{font-family:var(--mono);font-size:.74rem;color:var(--muted);white-space:nowrap}
+.status.sun{color:var(--sun-ink)}
+.strip{grid-column:2 / span 2;position:relative;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.strip canvas{position:absolute;inset:0}
+.meta{grid-column:2 / span 2;font-size:.74rem;color:var(--muted)}
+.more{align-self:center;margin-top:2px}
+footer{font-size:.7rem;color:var(--muted);line-height:1.4}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Sonnen<span>seite</span></h1>
+      <div class="sub" id="sub">Schanigärten in the sun · Wien</div>
+      <div class="readout" id="readout">–</div>
+    </div>
+    <label class="picker">District
+      <select id="district" aria-label="District"></select>
+    </label>
+  </header>
+
+  <div class="main">
+    <div class="mapwrap" id="mapwrap">
+      <canvas id="map" aria-label="Map with building shadows and terraces"></canvas>
+      <div class="compass" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30"><path d="M15 3 L19 15 L15 13 L11 15 Z" fill="var(--sun)"/><path d="M15 27 L11 15 L15 17 L19 15 Z" fill="var(--muted)"/></svg></div>
+      <div class="notice" id="notice" hidden></div>
+      <div class="maptag" id="maptag">drag · pinch to zoom</div>
+    </div>
+
+    <div class="controls">
+      <div class="row">
+        <button class="chip" id="btnNow" type="button">Now</button>
+        <button class="chip" id="btnToday" type="button" aria-pressed="false">Today</button>
+        <button class="chip" id="btnTomorrow" type="button" aria-pressed="false">Tomorrow</button>
+        <input type="date" id="date" class="chip" aria-label="Pick a date">
+        <div class="timebig" id="timebig">--:--</div>
+      </div>
+      <input type="range" id="time" min="0" max="1439" step="5" aria-label="Time of day">
+      <div class="scale" id="scale"><span>sunrise</span><span>noon</span><span>sunset</span></div>
+    </div>
+
+    <div class="list" id="list" aria-live="polite"></div>
+  </div>
+
+  <footer id="footer">Buildings and roof heights: Stadt Wien Baukörpermodell. Terraces: Stadt Wien approved Schanigärten. Venue names from OpenStreetMap and public listings and may be out of date. Trees, awnings and umbrellas are not modelled.</footer>
+</div>
+
+<script>
+/* ---------- data (loaded per district) ---------- */
+const DATA = 'data/';
+const EYE = 1.2, CELL = 25, MAXREACH = 600, LIST_STEP = 40;
+let LAT0 = 48.2030, LON0 = 16.3555, KX = 1, KY = 110540;
+let DISTRICT = null, B = [], TERRACES = [], STREETS = [], GRID = new Map(), MAXROOF = 0, seenB = new Int32Array(0), stamp = 0;
+const toXY = (lon,lat) => [(lon-LON0)*KX, (lat-LAT0)*KY];
+const ck = (cx,cy) => (cx+50000)*100000 + (cy+50000);
+
+/* ---------- geometry prep ---------- */
+function inside(px,py,pts){ let c=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const [xi,yi]=pts[i],[xj,yj]=pts[j];
+  if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) c=!c; } return c; }
+function cellList(x,y){ return GRID.get(ck(Math.floor(x/CELL),Math.floor(y/CELL))); }
+function insideAny(x,y){ const l=cellList(x,y); if(!l) return null; for(const i of l){ const b=B[i]; if(x<b.x0||x>b.x1||y<b.y0||y>b.y1) continue; if(inside(x,y,b.pts)) return b; } return null; }
+function nearestEdge(x,y,pts){ let best=null,bd=1e9; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const [ax,ay]=pts[j],[bx,by]=pts[i];
+  const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy||1; let t=((x-ax)*dx+(y-ay)*dy)/L; t=Math.max(0,Math.min(1,t)); const qx=ax+t*dx,qy=ay+t*dy,d=Math.hypot(x-qx,y-qy);
+  if(d<bd){bd=d;best=[qx,qy];} } return best; }
+function groundAt(x,y){
+  const cx=Math.floor(x/CELL), cy=Math.floor(y/CELL); let best=null,bd=1e9;
+  for(let r=0;r<=6 && !best;r++) for(let i=-r;i<=r;i++) for(let j=-r;j<=r;j++){ if(Math.max(Math.abs(i),Math.abs(j))!==r) continue;
+    const l=GRID.get(ck(cx+i,cy+j)); if(!l) continue;
+    for(const k of l){ const b=B[k]; const d=Math.hypot(Math.max(b.x0-x,0,x-b.x1),Math.max(b.y0-y,0,y-b.y1)); if(d<bd){bd=d;best=b;} } }
+  return best?best.base:(B.length? B[0].base : 38);
+}
+
+function prepare(data){
+  DISTRICT = data;
+  [LON0, LAT0] = data.center;
+  KX = Math.cos(LAT0*Math.PI/180)*111320;
+  GRID = new Map(); MAXROOF = 0;
+  B = data.buildings.map((b,idx) => {
+    const pts = b.r.map(([lo,la]) => toXY(lo,la));
+    let a2=0; for(let i=0,j=pts.length-1;i<pts.length;j=i++) a2+=pts[j][0]*pts[i][1]-pts[i][0]*pts[j][1];
+    if (a2<0) pts.reverse(); // counter-clockwise, so batched fills union cleanly
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    for (const [x,y] of pts){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; }
+    for(let cx=Math.floor(x0/CELL);cx<=Math.floor(x1/CELL);cx++) for(let cy=Math.floor(y0/CELL);cy<=Math.floor(y1/CELL);cy++){
+      const k=ck(cx,cy); let l=GRID.get(k); if(!l){ l=[]; GRID.set(k,l); } l.push(idx); }
+    if (b.o>MAXROOF) MAXROOF=b.o;
+    return {pts, roof:b.o, base:b.t, h:b.o-b.t, x0,y0,x1,y1};
+  });
+  seenB = new Int32Array(B.length); stamp = 0;
+  TERRACES = data.terraces.map(t0 => {
+    const t = {...t0};
+    let [x,y] = toXY(t.lon,t.lat);
+    const hit = insideAny(x,y);
+    if (hit){ const [qx,qy]=nearestEdge(x,y,hit.pts); const dx=qx-x,dy=qy-y,d=Math.hypot(dx,dy)||1; x=qx+dx/d*1.8; y=qy+dy/d*1.8; }
+    t.x=x; t.y=y; t.g=groundAt(x,y);
+    const r = Math.min(4, Math.max(1.5, Math.sqrt(t.m2||1)/2));
+    const cand=[[0,0],[r,0],[-r,0],[0,r],[0,-r]];
+    t.samples = cand.map(([dx,dy])=>[x+dx,y+dy]).filter(([sx,sy],i)=> i===0 || !insideAny(sx,sy));
+    return t;
+  });
+  STREETS = (data.streets||[]).map(s => ({n:s.n, pts:s.l.map(([lo,la])=>toXY(lo,la))}));
+}
+
+/* ---------- sun position (after SunCalc, V. Agafonkin) ---------- */
+const RAD=Math.PI/180, E=RAD*23.4397;
+function sunPos(date, lat, lng){
+  const d = date.valueOf()/864e5 - 0.5 + 2440588 - 2451545;
+  const M = RAD*(357.5291 + 0.98560028*d);
+  const C = RAD*(1.9148*Math.sin(M) + 0.02*Math.sin(2*M) + 0.0003*Math.sin(3*M));
+  const L = M + C + RAD*102.9372 + Math.PI;
+  const dec = Math.asin(Math.sin(E)*Math.sin(L));
+  const ra = Math.atan2(Math.sin(L)*Math.cos(E), Math.cos(L));
+  const H = RAD*(280.16 + 360.9856235*d) + RAD*lng - ra;
+  const phi = RAD*lat;
+  const alt = Math.asin(Math.sin(phi)*Math.sin(dec) + Math.cos(phi)*Math.cos(dec)*Math.cos(H));
+  const az = Math.atan2(Math.sin(H), Math.cos(H)*Math.sin(phi) - Math.tan(dec)*Math.cos(phi)) + Math.PI; // from north, clockwise
+  return {alt, az};
+}
+
+/* ---------- shadow test: walk grid cells along the ray toward the sun ---------- */
+function blocks(b,px,py,dx,dy,tanA,eye){
+  const rel = b.roof - eye; if (rel <= 0) return false;
+  const reach = rel/tanA;
+  if (px < b.x0-reach || px > b.x1+reach || py < b.y0-reach || py > b.y1+reach) return false;
+  const pts=b.pts;
+  for (let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const ax=pts[j][0], ay=pts[j][1], ex=pts[i][0]-ax, ey=pts[i][1]-ay, den = dx*ey - dy*ex;
+    if (Math.abs(den)<1e-12) continue;
+    const wx=ax-px, wy=ay-py;
+    const t = (wx*ey - wy*ex)/den, u = (wx*dy - wy*dx)/den;
+    if (t>0.05 && u>=0 && u<=1 && t < reach) return true;
+  }
+  return false;
+}
+function litPoint(px,py,g,sun){
+  if (sun.alt <= 0.01) return false;
+  const dx=Math.sin(sun.az), dy=Math.cos(sun.az), tanA=Math.tan(sun.alt), eye=g+EYE;
+  const maxT = Math.min(MAXREACH, (MAXROOF-eye)/tanA);
+  if (maxT <= 0) return true;
+  if (++stamp > 2e9){ stamp=1; seenB.fill(0); }
+  let cx=Math.floor(px/CELL), cy=Math.floor(py/CELL);
+  const sX=dx>0?1:-1, sY=dy>0?1:-1;
+  const tdX = dx!==0 ? CELL/Math.abs(dx) : Infinity, tdY = dy!==0 ? CELL/Math.abs(dy) : Infinity;
+  let tX = dx!==0 ? (dx>0 ? (cx+1)*CELL-px : px-cx*CELL)/Math.abs(dx) : Infinity;
+  let tY = dy!==0 ? (dy>0 ? (cy+1)*CELL-py : py-cy*CELL)/Math.abs(dy) : Infinity;
+  let t=0;
+  while (t <= maxT){
+    const l = GRID.get(ck(cx,cy));
+    if (l) for (const i of l){ if (seenB[i]===stamp) continue; seenB[i]=stamp; if (blocks(B[i],px,py,dx,dy,tanA,eye)) return false; }
+    if (tX < tY){ t=tX; tX+=tdX; cx+=sX; } else { t=tY; tY+=tdY; cy+=sY; }
+  }
+  return true;
+}
+function litFraction(t,sun){ let n=0; for(const [x,y] of t.samples) if(litPoint(x,y,t.g,sun)) n++; return n/t.samples.length; }
+
+/* ---------- state ---------- */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const fmt = m => pad(Math.floor(m/60))+":"+pad(Math.round(m%60));
+let day = new Date(); day.setHours(0,0,0,0);
+let minute = 0, selected = null, dayCache = null, listLimit = LIST_STEP, compToken = 0;
+
+function dateAt(m){ const d=new Date(day); d.setMinutes(m); return d; }
+function computeRow(t){
+  const st=dayCache.steps, fr=st.map(s=>s.s.alt>0?litFraction(t,s.s):0);
+  // short sun windows right before sunset are usually artefacts (gaps, missing edge buildings)
+  for(let i=0;i<fr.length;){ if(fr[i]<.5){i++;continue;} let j=i; while(j<fr.length&&fr[j]>=.5) j++;
+    if((j-i)*10<20 && st[i].m>=dayCache.set-30) for(let k=i;k<j;k++) fr[k]=0; i=j; }
+  return fr;
+}
+function computeDay(){
+  const steps=[]; let rise=null,set=null;
+  for (let m=240;m<=1320;m+=10){ const s=sunPos(dateAt(m),LAT0,LON0); steps.push({m,s}); if(s.alt>0&&rise===null) rise=m; if(s.alt>0) set=m; }
+  if (rise!==null){ for(let m=rise-10;m<=rise;m++){ if(sunPos(dateAt(m),LAT0,LON0).alt>0){rise=m;break;} } for(let m=set;m<=set+10;m++){ if(sunPos(dateAt(m),LAT0,LON0).alt<=0){set=m;break;} } }
+  const rows = TERRACES.map(t=>({t, fr:null}));
+  dayCache = {steps, rise, set, rows, done:0};
+  // work in slices so the page stays responsive on large districts
+  const tok=++compToken; let i=0, lastPaint=0;
+  const work=()=>{ if(tok!==compToken) return; const t0=performance.now();
+    while(i<rows.length && performance.now()-t0<14){ rows[i].fr=computeRow(rows[i].t); i++; }
+    dayCache.done=i;
+    if(i>=rows.length){ renderList(); draw(); return; }
+    if(performance.now()-lastPaint>400){ lastPaint=performance.now(); renderList(); }
+    setTimeout(work,0); };
+  work();
+}
+
+function statusFor(row, m){
+  const now = litFraction(row.t, sunPos(dateAt(m),LAT0,LON0));
+  if (!row.fr) return {now, cls: now>=.5?"sun":"", text:"…"};
+  const st=dayCache.steps, i0=Math.max(0,Math.min(st.length-1,Math.round((m-240)/10)));
+  if (now >= 0.5){ let j=i0; while(j<st.length && row.fr[j]>=0.5) j++; return {now, cls:"sun", text: j>=st.length||st[j].m>=dayCache.set ? "sun until sunset" : "sun until "+fmt(st[j].m)}; }
+  let j=i0; while(j<st.length && row.fr[j]<0.5) j++;
+  if (j>=st.length || st[j].m>=dayCache.set) {
+    const any = row.fr.some(f=>f>=0.5);
+    return {now, cls:"", text: any ? "no more sun today" : "no direct sun this day"};
+  }
+  let k=j; while(k<st.length && row.fr[k]>=0.5) k++;
+  return {now, cls:"", text:"sun "+fmt(st[j].m)+"–"+fmt(st[Math.min(k,st.length-1)].m)};
+}
+
+/* ---------- map ---------- */
+const cv=$('map'), ctx=cv.getContext('2d'), wrap=$('mapwrap');
+const off=document.createElement('canvas'), octx=off.getContext('2d');
+let view={cx:0, cy:0, s:2.2, fitted:false}, W=0, H=0, DPR=1, colors={};
+function readColors(){ const cs=getComputedStyle(document.documentElement); for(const k of ['ground','street','building','building-top','shade','sun','ink','muted','surface','cool','line']) colors[k]=cs.getPropertyValue('--'+k).trim(); }
+function fit(){ if(!TERRACES.length||!W) return; const xs=TERRACES.map(t=>t.x), ys=TERRACES.map(t=>t.y); const x0=Math.min(...xs)-30,x1=Math.max(...xs)+30,y0=Math.min(...ys)-30,y1=Math.max(...ys)+30;
+  view.cx=(x0+x1)/2; view.cy=(y0+y1)/2; view.s=Math.min(W/(x1-x0), H/(y1-y0)); view.fitted=true; }
+function resize(){ const r=wrap.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1); W=r.width; H=r.height;
+  for(const c of [cv,off]){ c.width=Math.round(W*DPR); c.height=Math.round(H*DPR); } if(!view.fitted) fit(); draw(); }
+const sx = x => W/2 + (x-view.cx)*view.s, sy = y => H/2 - (y-view.cy)*view.s;
+function addRing(c,pts,ox,oy){ for(let i=0;i<pts.length;i++){ const X=sx(pts[i][0]+ox),Y=sy(pts[i][1]+oy); i?c.lineTo(X,Y):c.moveTo(X,Y); } c.closePath(); }
+function path(c,pts,ox=0,oy=0){ c.beginPath(); pts.forEach(([x,y],i)=>{ const X=sx(x+ox),Y=sy(y+oy); i?c.lineTo(X,Y):c.moveTo(X,Y); }); c.closePath(); }
+const isDark=()=>document.documentElement.matches('[data-theme="dark"]')||(!document.documentElement.matches('[data-theme="light"]')&&matchMedia('(prefers-color-scheme: dark)').matches);
+
+function drawStreetLabels(vx0,vy0,vx1,vy1){
+  if(view.s<0.6||!STREETS.length) return;
+  ctx.fillStyle=colors.muted; ctx.font=`500 ${Math.max(9,Math.min(12,view.s*4))}px ${getComputedStyle(document.body).getPropertyValue('--mono')||'monospace'}`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const placed=[];
+  for(const s of STREETS){
+    let best=null, bl=0;
+    for(let i=1;i<s.pts.length;i++){ const [ax,ay]=s.pts[i-1],[bx,by]=s.pts[i];
+      const mx=(ax+bx)/2, my=(ay+by)/2; if(mx<vx0||mx>vx1||my<vy0||my>vy1) continue;
+      const L=Math.hypot(bx-ax,by-ay)*view.s; if(L>bl){ bl=L; best=[ax,ay,bx,by]; } }
+    if(!best) continue;
+    const label=s.n.toUpperCase(), w=ctx.measureText(label).width;
+    if(bl<w+16) continue;
+    const X=sx((best[0]+best[2])/2), Y=sy((best[1]+best[3])/2);
+    if(placed.some(p=>(p.n===s.n&&Math.hypot(p.X-X,p.Y-Y)<260)||Math.hypot(p.X-X,p.Y-Y)<26)) continue;
+    let a=Math.atan2(-(best[3]-best[1]),best[2]-best[0]); if(a>Math.PI/2) a-=Math.PI; if(a<-Math.PI/2) a+=Math.PI;
+    placed.push({n:s.n,X,Y});
+    ctx.save(); ctx.translate(X,Y); ctx.rotate(a); ctx.globalAlpha=.85; ctx.fillText(label,0,0); ctx.restore();
+  }
+}
+
+function draw(){
+  if(!W||!dayCache) return;
+  const sun = sunPos(dateAt(minute),LAT0,LON0);
+  const vx0=view.cx-W/2/view.s, vx1=view.cx+W/2/view.s, vy0=view.cy-H/2/view.s, vy1=view.cy+H/2/view.s;
+  ctx.setTransform(DPR,0,0,DPR,0,0); ctx.fillStyle=colors.street; ctx.fillRect(0,0,W,H);
+  // shadows on an offscreen layer so overlaps don't stack
+  octx.setTransform(DPR,0,0,DPR,0,0); octx.clearRect(0,0,W,H);
+  if (sun.alt>0.005){
+    // one path per building: footprint + edge quads share the same winding, so one nonzero fill unions them
+    const dx=-Math.sin(sun.az), dy=-Math.cos(sun.az), tanA=Math.tan(sun.alt);
+    octx.fillStyle=colors.shade;
+    for(const b of B){ const L=Math.min(500,b.h/tanA), ox=dx*L, oy=dy*L;
+      if(Math.max(b.x1,b.x1+ox)<vx0||Math.min(b.x0,b.x0+ox)>vx1||Math.max(b.y1,b.y1+oy)<vy0||Math.min(b.y0,b.y0+oy)>vy1) continue;
+      const p=b.pts; octx.beginPath(); addRing(octx,p,ox,oy);
+      for(let i=0,j=p.length-1;i<p.length;j=i++){ const ax=p[j][0],ay=p[j][1],bx=p[i][0],by=p[i][1];
+        const pos=(bx-ax)*oy-(by-ay)*ox>0;
+        const q = pos ? [ax,ay,bx,by,bx+ox,by+oy,ax+ox,ay+oy] : [ax+ox,ay+oy,bx+ox,by+oy,bx,by,ax,ay];
+        octx.moveTo(sx(q[0]),sy(q[1])); octx.lineTo(sx(q[2]),sy(q[3])); octx.lineTo(sx(q[4]),sy(q[5])); octx.lineTo(sx(q[6]),sy(q[7])); octx.closePath(); }
+      octx.fill('nonzero');
+    }
+    ctx.globalAlpha = isDark() ? .78 : .42;
+    ctx.drawImage(off,0,0,W,H); ctx.globalAlpha=1;
+  } else { ctx.globalAlpha=.35; ctx.fillStyle=colors.shade; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; }
+  // buildings: tone by height
+  for(const b of B){ if(b.x1<vx0||b.x0>vx1||b.y1<vy0||b.y0>vy1) continue; ctx.beginPath(); addRing(ctx,b.pts,0,0); ctx.fillStyle = b.h>18?colors['building']:colors['building-top']; ctx.fill(); }
+  drawStreetLabels(vx0,vy0,vx1,vy1);
+  // terraces (visible ones only)
+  const labels=[], R=Math.max(6,Math.min(11,view.s*2.6)), m=R/view.s+2, vis=[];
+  for(const t of TERRACES){ if(t.x<vx0-m||t.x>vx1+m||t.y<vy0-m||t.y>vy1+m) continue; vis.push(t);
+    const f=litFraction(t,sun), X=sx(t.x), Y=sy(t.y);
+    if(selected===t.id){ ctx.beginPath(); ctx.arc(X,Y,R+6,0,7); ctx.strokeStyle=colors.sun; ctx.lineWidth=2.5; ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.fillStyle = f>=.5?colors.sun:colors.surface; ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle = f>0?colors.sun:colors.cool; ctx.stroke();
+    if(f>0&&f<.5){ ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,R,-Math.PI/2,-Math.PI/2+f*2*Math.PI); ctx.closePath(); ctx.fillStyle=colors.sun; ctx.fill(); }
+    if(selected===t.id||(t.name&&view.s>0.9)||view.s>3.6) labels.push({t,f,X,Y,R,sel:selected===t.id});
+  }
+  // labels: selected first, then sunny; try right, left, above, below; skip if no free spot
+  labels.sort((a,b)=>b.sel-a.sel || b.f-a.f);
+  const placed=vis.map(t=>{const X=sx(t.x),Y=sy(t.y);return {x:X-R,y:Y-R,w:2*R,h:2*R};}), hits=(r)=>placed.some(p=>r.x<p.x+p.w&&r.x+r.w>p.x&&r.y<p.y+p.h&&r.y+r.h>p.y);
+  for(const L of labels){ const sel=L.sel; ctx.font=`${sel?600:500} ${sel?12:11}px system-ui,sans-serif`; ctx.textAlign='left'; ctx.textBaseline='middle';
+    const label=L.t.name||L.t.addr, w=ctx.measureText(label).width+10, h=18, g=L.R+5;
+    const opts=[[L.X+g,L.Y-h/2],[L.X-g-w,L.Y-h/2],[L.X-w/2,L.Y-g-h],[L.X-w/2,L.Y+g]];
+    let spot=null; for(const [x,y] of opts){ const r={x,y,w,h}; const fits=x>=4&&y>=4&&x+w<=W-4&&y+h<=H-4; if(fits&&(sel||!hits(r))){ spot=r; break; } }
+    if(!spot) continue; placed.push(spot);
+    ctx.fillStyle=colors.surface; ctx.globalAlpha=.94; ctx.fillRect(spot.x,spot.y,w,h); ctx.globalAlpha=1;
+    ctx.fillStyle=colors.ink; ctx.fillText(label,spot.x+5,spot.y+h/2); }
+  // compass arrow points to sun
+  const rot = sun.alt>0 ? sun.az : null;
+  document.querySelector('.compass svg').style.transform = rot===null?'':`rotate(${rot/RAD}deg)`;
+  document.querySelector('.compass').style.opacity = rot===null?.4:1;
+}
+
+/* pan & zoom */
+const ptrs=new Map(); let last=null, moved=false;
+cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,[e.offsetX,e.offsetY]); moved=false; last=null; });
+cv.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)) return; const prev=ptrs.get(e.pointerId); ptrs.set(e.pointerId,[e.offsetX,e.offsetY]);
+  if(ptrs.size===1){ const dx=e.offsetX-prev[0], dy=e.offsetY-prev[1]; if(Math.abs(dx)+Math.abs(dy)>1) moved=true; view.cx-=dx/view.s; view.cy+=dy/view.s; draw(); }
+  else if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]); if(last){ zoomAt((a[0]+b[0])/2,(a[1]+b[1])/2,d/last); } last=d; moved=true; } });
+const endPtr=e=>{ const wasTap=!moved&&ptrs.size===1; ptrs.delete(e.pointerId); last=null; if(wasTap) tap(e.offsetX,e.offsetY); };
+cv.addEventListener('pointerup',endPtr); cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId); last=null;});
+cv.addEventListener('wheel',e=>{ e.preventDefault(); zoomAt(e.offsetX,e.offsetY,Math.exp(-e.deltaY*0.0015)); },{passive:false});
+function zoomAt(px,py,k){ const ns=Math.max(0.05,Math.min(14,view.s*k)); const wx=view.cx+(px-W/2)/view.s, wy=view.cy-(py-H/2)/view.s; view.s=ns; view.cx=wx-(px-W/2)/ns; view.cy=wy+(py-H/2)/ns; draw(); }
+function tap(px,py){ let best=null,bd=22; for(const t of TERRACES){ const d=Math.hypot(sx(t.x)-px,sy(t.y)-py); if(d<bd){bd=d;best=t;} } selected = best?best.id:null;
+  if(best && !listOrder().slice(0,listLimit).some(r=>r.r.t.id===best.id)) listLimit=TERRACES.length;
+  renderList(); draw();
+  if(best){ const el=document.querySelector(`[data-id="${best.id}"]`); el&&el.scrollIntoView({block:'nearest',behavior:'smooth'}); } }
+
+/* ---------- list ---------- */
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function renderStrip(c,row){ const r=c.parentElement.getBoundingClientRect(); const w=Math.round(r.width*DPR),h=Math.round(r.height*DPR); if(!w) return; c.width=w; c.height=h; const x=c.getContext('2d');
+  const a=dayCache.rise??360, z=dayCache.set??1080, span=z-a; x.clearRect(0,0,w,h);
+  if(row.fr) row.fr.forEach((f,i)=>{ const m=dayCache.steps[i].m; if(m<a||m>z||f<=0) return; x.globalAlpha=f>=.5?1:.45; x.fillStyle=colors.sun; x.fillRect((m-a)/span*w,0,Math.ceil(10/span*w)+1,h); });
+  x.globalAlpha=1; if(minute>=a&&minute<=z){ x.fillStyle=colors.ink; x.fillRect((minute-a)/span*w-1*DPR,0,2*DPR,h); } }
+function listOrder(){
+  const rows=dayCache.rows.map(r=>({r,s:statusFor(r,minute),total:r.fr?r.fr.filter(f=>f>=.5).length*10:-1}));
+  rows.sort((a,b)=> (b.s.now>=.5)-(a.s.now>=.5) || b.s.now-a.s.now || b.total-a.total);
+  return rows;
+}
+const dur=m=> m>=60? Math.floor(m/60)+' h'+(m%60?' '+m%60+' min':'') : m+' min';
+function renderList(){
+  if(!dayCache) return;
+  const list=$('list'); const rows=listOrder();
+  const sunny=rows.filter(x=>x.s.now>=.5).length;
+  const sunUp = sunPos(dateAt(minute),LAT0,LON0).alt>0;
+  const busy = dayCache.done<rows.length ? ` · working out the day ${Math.round(dayCache.done/rows.length*100)} %` : '';
+  let html=`<div class="listhead"><span>${sunUp? sunny+" of "+rows.length+" terraces in the sun" : "Sun is below the horizon"}${busy}</span><span>${fmt(minute)}</span></div>`;
+  const shown=rows.slice(0,listLimit);
+  for(const {r,s,total} of shown){ const t=r.t; const cls=s.now>=.5?'sun':(s.now>0?'part':'');
+    const daytxt = total<0 ? '…' : total? dur(total)+' of sun this day' : 'no direct sun this day';
+    html+=`<button class="item${selected===t.id?' sel':''}" data-id="${t.id}" type="button">
+      <span class="dot ${cls}"></span>
+      <span class="name">${t.name?esc(t.name)+' <small>· '+esc(t.addr)+'</small>':esc(t.addr)}</span>
+      <span class="status ${s.cls}">${sunUp?s.text:(total>0?Math.round(total/60*10)/10+' h sun':total<0?'…':'no sun')}</span>
+      <span class="strip"><canvas></canvas></span>
+      <span class="meta">${t.note?esc(t.note)+' · ':''}${esc(t.kind)} · ${t.m2} m² · ${daytxt}</span>
+    </button>`; }
+  if(rows.length>shown.length) html+=`<button class="chip more" id="more" type="button">Show all ${rows.length} terraces</button>`;
+  list.innerHTML=html;
+  list.querySelectorAll('.item').forEach((el,i)=>{ const row=shown[i].r; renderStrip(el.querySelector('canvas'),row);
+    el.addEventListener('click',()=>{ selected = selected===row.t.id?null:row.t.id; if(selected){ view.cx=row.t.x; view.cy=row.t.y; view.s=Math.max(view.s,3.4);} renderList(); draw(); }); });
+  const more=$('more'); if(more) more.onclick=()=>{ listLimit=rows.length; renderList(); };
+}
+
+/* ---------- controls ---------- */
+function updateReadout(){
+  const s=sunPos(dateAt(minute),LAT0,LON0); const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  const dir=dirs[Math.round(s.az/RAD/22.5)%16];
+  $('readout').innerHTML = s.alt>0 ? `sun <b>${(s.alt/RAD).toFixed(0)}°</b> ${dir} · rise ${fmt(dayCache.rise)} · set ${fmt(dayCache.set)}` : `sun down · rise ${fmt(dayCache.rise)} · set ${fmt(dayCache.set)}`;
+  $('timebig').textContent=fmt(minute);
+  const today=new Date(); today.setHours(0,0,0,0); const diff=Math.round((day-today)/864e5);
+  $('btnToday').setAttribute('aria-pressed',diff===0); $('btnTomorrow').setAttribute('aria-pressed',diff===1);
+  $('date').value=`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`;
+  const sl=$('time'); sl.min=Math.floor((dayCache.rise-30)/5)*5; sl.max=Math.ceil((dayCache.set+30)/5)*5; sl.value=minute;
+  $('scale').innerHTML=`<span>${fmt(dayCache.rise)}</span><span>${fmt(Math.round((dayCache.rise+dayCache.set)/2))}</span><span>${fmt(dayCache.set)}</span>`;
+}
+function setDay(d){ day=new Date(d); day.setHours(0,0,0,0); computeDay(); }
+function refresh(){ updateReadout(); renderList(); draw(); }
+function showNotice(text,ms=6000){ const n=$('notice'); n.textContent=text; n.hidden=false; clearTimeout(showNotice.t); if(ms) showNotice.t=setTimeout(()=>n.hidden=true,ms); }
+function goNow(){ const n=new Date(); setDay(n); minute=n.getHours()*60+n.getMinutes();
+  if(sunPos(n,LAT0,LON0).alt<=0 || minute>dayCache.set){ const t=new Date(n); if(minute>dayCache.set) t.setDate(t.getDate()+1); setDay(t); minute = Math.round((dayCache.rise+dayCache.set)/2/5)*5; showNotice(n.getHours()>=12 ? "The sun has set. Showing tomorrow at midday." : "The sun isn't up yet. Showing midday."); }
+  refresh(); }
+$('btnNow').onclick=goNow;
+$('btnToday').onclick=()=>{ setDay(new Date()); refresh(); };
+$('btnTomorrow').onclick=()=>{ const t=new Date(); t.setDate(t.getDate()+1); setDay(t); refresh(); };
+$('date').onchange=e=>{ const v=e.target.value; if(!v) return; const [y,m,d]=v.split('-').map(Number); setDay(new Date(y,m-1,d)); refresh(); };
+let raf=null; $('time').oninput=e=>{ minute=+e.target.value; if(raf) return; raf=requestAnimationFrame(()=>{ raf=null; $('timebig').textContent=fmt(minute); updateReadout(); draw(); renderList(); }); };
+
+/* ---------- districts ---------- */
+const store={ get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
+let INDEX=null;
+async function loadDistrict(d){
+  const meta=INDEX.districts.find(x=>x.d===d); if(!meta) return;
+  $('district').value=String(d); store.set('district',String(d));
+  if(location.hash!=='#'+d) history.replaceState(null,'','#'+d);
+  showNotice(`Loading ${meta.name} …`,0);
+  try{
+    const r=await fetch(`${DATA}districts/${pad(d)}.json`); if(!r.ok) throw new Error(r.status);
+    const data=await r.json();
+    prepare(data);
+    $('sub').textContent=`Schanigärten in the sun · ${data.name}, ${data.plz} Wien`;
+    cv.setAttribute('aria-label',`Map of ${data.name} with building shadows and terraces`);
+    selected=null; listLimit=LIST_STEP; view.fitted=false; fit();
+    $('notice').hidden=true;
+    const keepDay = dayCache!==null; if(keepDay){ setDay(day); refresh(); } else goNow();
+  }catch(e){ showNotice(`Couldn't load ${meta.name}. Check your connection and try again.`,0); }
+}
+async function init(){
+  readColors();
+  new ResizeObserver(resize).observe(wrap);
+  try{
+    const r=await fetch(`${DATA}index.json`); if(!r.ok) throw new Error(r.status); INDEX=await r.json();
+  }catch(e){ showNotice("Couldn't load the district list. The data may not be built yet.",0); return; }
+  const sel=$('district');
+  sel.innerHTML=INDEX.districts.map(x=>`<option value="${x.d}">${x.d}. ${esc(x.name)} · ${x.terraces}</option>`).join('');
+  sel.onchange=()=>loadDistrict(+sel.value);
+  if(INDEX.updated) $('footer').textContent+=` Data from ${INDEX.updated}.`;
+  const want=[parseInt(location.hash.slice(1)),parseInt(store.get('district')),7].find(d=>INDEX.districts.some(x=>x.d===d)) ?? INDEX.districts[0]?.d;
+  window.addEventListener('hashchange',()=>{ const d=parseInt(location.hash.slice(1)); if(d&&d!==DISTRICT?.d) loadDistrict(d); });
+  if(want!=null) loadDistrict(want); else showNotice("No district data yet. Run the “Build data and deploy” action on GitHub.",0);
+}
+const themeChanged=()=>{ readColors(); if(dayCache){ renderList(); draw(); } };
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',themeChanged);
+new MutationObserver(themeChanged).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+init();
+</script>
+</body>
+</html>

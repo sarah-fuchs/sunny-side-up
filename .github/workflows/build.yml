@@ -1,0 +1,62 @@
+name: Build data and deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      districts:
+        description: "District numbers, space separated (empty = all 23)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "17 3 1 * *"   # monthly, 1st of the month 03:17 UTC
+  push:
+    branches: [main]
+    paths: ["web/**"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: build-deploy
+  cancel-in-progress: false
+
+jobs:
+  data:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run pipeline
+        run: python pipeline/build.py ${{ github.event.inputs.districts }}
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/data
+          if git diff --cached --quiet; then echo "No data changes"; exit 0; fi
+          git commit -m "Update district data"
+          git push
+
+  deploy:
+    needs: data
+    if: always() && (needs.data.result == 'success' || needs.data.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: pages
+        uses: actions/deploy-pages@v4

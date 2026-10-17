@@ -1,0 +1,13 @@
+{
+  "_comment": "Hand-maintained venue names, keyed by '<Straße> <Hausnummer>' exactly as the city lists the Schanigarten. Wins over OpenStreetMap. Value is a name, or {\"name\": ..., \"note\": ...}.",
+  "Schrankgasse 2": "Plutzer Bräu",
+  "Schrankgasse 4": "Tian Bistro",
+  "Schrankgasse 10": "Delicatessen",
+  "Spittelberggasse 3": "Weinstüberl Horvath",
+  "Spittelberggasse 18": "Melete",
+  "Stiftgasse 4": "Centimeter II",
+  "Siebensterngasse 5": { "name": "Kreisky / Café Corny", "note": "listings disagree on the current name" },
+  "Siebensterngasse 8": "Bukowski",
+  "Breite Gasse 9": { "name": "&flora", "note": "restaurant in Hotel Gilbert" },
+  "Burggasse 23": "bestens."
+}
