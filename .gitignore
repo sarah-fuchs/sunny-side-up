@@ -6,3 +6,4 @@ pipeline/cache/
 tests/out/
 node_modules/
 tests/fixtures/
+tests/real/
