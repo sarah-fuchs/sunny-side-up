@@ -187,7 +187,7 @@ def outer_rings(geom):
 # ---------------------------------------------------------------- addresses
 
 def norm_street(s):
-    s = unicodedata.normalize("NFKC", s or "").lower().strip()
+    s = unicodedata.normalize("NFKC", str(s or "")).lower().strip()
     s = s.replace("ß", "ss")
     s = re.sub(r"str\.?$", "strasse", s)
     s = re.sub(r"\bstr\.?\s", "strasse ", s)
@@ -196,7 +196,7 @@ def norm_street(s):
 
 
 def norm_number(n):
-    n = (n or "").lower().replace(" ", "")
+    n = ("" if n is None else str(n)).lower().replace(" ", "")
     return n
 
 
@@ -206,7 +206,7 @@ def base_number(n):
 
 
 def fmt_number(n):
-    return (n or "").strip()
+    return ("" if n is None else str(n)).strip()
 
 
 # ---------------------------------------------------------------- steps
@@ -229,10 +229,13 @@ def load_terraces():
         d = (plz - 1000) // 10
         if d not in DISTRICTS:
             continue
-        street, onr = (p.get("STRASSE") or "").strip(), fmt_number(p.get("ONR"))
+        street, onr = str(p.get("STRASSE") or "").strip(), fmt_number(p.get("ONR"))
         key = (d, norm_street(street), norm_number(onr))
         lon, lat = g["coordinates"][:2]
-        area = float(p.get("FLAECHE") or 0)
+        try:
+            area = float(str(p.get("FLAECHE") or 0).replace(",", "."))
+        except ValueError:
+            area = 0.0
         kind = KIND.get(p.get("NAME"), (p.get("NAME") or "").replace("Schanigarten ", ""))
         t = by_addr.get(key)
         if t is None:
