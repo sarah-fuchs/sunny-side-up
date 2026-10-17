@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sonnenseite Wien</title>
-<meta name="theme-color" content="#DDF7EC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1A1747" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#E4F7EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='11' fill='%23FFE347' stroke='%2326215E' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,24 +13,24 @@
 <style>
 /* Freibad poster: mint page, lemon sunlight, mint shade, pink buildings, indigo ink outlines with flat sticker shadows */
 :root{
-  --paper:#DDF7EC; --card:#FFFFFF; --ink:#26215E; --muted:#5E5A96; --hair:rgba(38,33,94,.18);
-  --yellow:#FFE347; --yellow-ink:#6B5200; --mint:#8FEACF; --mint-deep:#16A985; --pink:#FF5FAE; --pink-soft:#FFD1E7;
-  --street:#FFE860; --shade:#4FD3B0; --building:#FF8EC6; --building-tall:#F2489D;
-  --shadow-a:.82; --lift:4px 4px 0 var(--ink); --lift-s:3px 3px 0 var(--ink);
+  --paper:#E4F7EF; --card:#FFFFFF; --ink:#2B2B2B; --muted:#62646A; --hair:rgba(43,43,43,.16);
+  --yellow:#FFE347; --yellow-ink:#5C4700; --mint:#8FEACF; --mint-deep:#16A985; --pink:#FF5FAE; --pink-soft:#FFE0EF;
+  --street:#FFF6C9; --shade:#A9E3D2; --building:#F7D3E3; --building-tall:#F0B3CF;
+  --shadow-a:.78; --lift:4px 4px 0 var(--ink); --lift-s:3px 3px 0 var(--ink);
   --display:"Bagel Fat One", "Cooper Black", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --paper:#1A1747; --card:#262063; --ink:#F6F3FF; --muted:#BDB8F0; --hair:rgba(246,243,255,.2);
-  --yellow:#FFE347; --yellow-ink:#FFE347; --mint:#3FBF9E; --mint-deep:#7CEBCB; --pink:#FF6FB8; --pink-soft:#4A2A6E;
-  --street:#E9CC3C; --shade:#123B4A; --building:#B03C86; --building-tall:#8A2A6C;
-  --shadow-a:.86; --lift:4px 4px 0 #0B0930; --lift-s:3px 3px 0 #0B0930; color-scheme:dark }}
+  --paper:#18181A; --card:#242427; --ink:#F4F4F1; --muted:#B4B4AE; --hair:rgba(244,244,241,.18);
+  --yellow:#FFE347; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
+  --street:#8A782A; --shade:#173A33; --building:#5B3C4B; --building-tall:#4A2F3D;
+  --shadow-a:.8; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }}
 :root[data-theme="dark"]{
-  --paper:#1A1747; --card:#262063; --ink:#F6F3FF; --muted:#BDB8F0; --hair:rgba(246,243,255,.2);
-  --yellow:#FFE347; --yellow-ink:#FFE347; --mint:#3FBF9E; --mint-deep:#7CEBCB; --pink:#FF6FB8; --pink-soft:#4A2A6E;
-  --street:#E9CC3C; --shade:#123B4A; --building:#B03C86; --building-tall:#8A2A6C;
-  --shadow-a:.86; --lift:4px 4px 0 #0B0930; --lift-s:3px 3px 0 #0B0930; color-scheme:dark }
+  --paper:#18181A; --card:#242427; --ink:#F4F4F1; --muted:#B4B4AE; --hair:rgba(244,244,241,.18);
+  --yellow:#FFE347; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
+  --street:#8A782A; --shade:#173A33; --building:#5B3C4B; --building-tall:#4A2F3D;
+  --shadow-a:.8; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }
 
 *{box-sizing:border-box}
 body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;margin:0;-webkit-font-smoothing:antialiased}
@@ -52,8 +52,8 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(2.1rem,9vw,3.1rem)
   padding:9px 40px 9px 16px;max-width:min(70vw,320px);box-shadow:var(--lift-s);appearance:none;-webkit-appearance:none;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);
   background-position:calc(100% - 22px) 54%,calc(100% - 15px) 54%;background-size:7px 7px;background-repeat:no-repeat}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .picker select{color:#26215E;background-image:linear-gradient(45deg,transparent 50%,#26215E 50%),linear-gradient(135deg,#26215E 50%,transparent 50%)} }
-:root[data-theme="dark"] .picker select{color:#26215E}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .picker select{color:#2B2B2B;background-image:linear-gradient(45deg,transparent 50%,#2B2B2B 50%),linear-gradient(135deg,#2B2B2B 50%,transparent 50%)} }
+:root[data-theme="dark"] .picker select{color:#2B2B2B}
 
 .main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 .mapwrap{height:clamp(320px,56svh,580px)}
@@ -63,7 +63,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(2.1rem,9vw,3.1rem)
 canvas{display:block;width:100%;height:100%}
 .maptag{position:absolute;left:12px;bottom:12px;font-size:.78rem;font-weight:700;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:999px;padding:4px 11px;pointer-events:none}
 .compass{position:absolute;right:12px;top:12px;width:46px;height:46px;border-radius:50%;background:var(--yellow);border:2.5px solid var(--ink);display:grid;place-items:center;pointer-events:none;box-shadow:var(--lift-s)}
-.compass path{fill:#26215E}
+.compass path{fill:#2B2B2B}
 .notice{position:absolute;left:12px;top:12px;right:70px;font-size:.88rem;font-weight:600;background:var(--pink-soft);border:2px solid var(--ink);border-radius:14px;padding:8px 11px;color:var(--ink)}
 
 /* time controls */
@@ -98,15 +98,15 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;bac
 .addr{grid-column:1;font-size:.88rem;color:var(--muted);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .status{font-weight:700;font-size:.9rem;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}
 .status.sun{color:var(--ink);background:var(--yellow);border-radius:999px;padding:1px 9px;border:1.5px solid var(--ink)}
-:root[data-theme="dark"] .status.sun{color:#26215E}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .status.sun{color:#26215E} }
+:root[data-theme="dark"] .status.sun{color:#2B2B2B}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .status.sun{color:#2B2B2B} }
 .strip{grid-column:1 / span 2;position:relative;height:10px;border-radius:999px;background:var(--paper);border:1.5px solid var(--ink);overflow:hidden;margin-top:8px}
 .strip canvas{position:absolute;inset:0}
 .meta{grid-column:1 / span 2;font-size:.86rem;color:var(--muted);margin-top:4px}
 .meta em{font-style:normal;font-weight:700;color:var(--ink)}
 .more{align-self:center;margin-top:4px;background:var(--yellow);box-shadow:var(--lift-s)}
-:root[data-theme="dark"] .more{color:#26215E}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .more{color:#26215E} }
+:root[data-theme="dark"] .more{color:#2B2B2B}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .more{color:#2B2B2B} }
 footer{font-size:.82rem;color:var(--muted);line-height:1.5;max-width:68ch}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media (min-width:880px){ header{grid-template-columns:auto 1fr auto;grid-template-areas:"title pick sun"} .picker{justify-self:end} }
@@ -372,7 +372,7 @@ function draw(){
     ctx.drawImage(off,0,0,W,H); ctx.globalAlpha=1;
   } else { ctx.globalAlpha=.35; ctx.fillStyle=colors.shade; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; }
   // buildings: tone by height
-  for(const b of B){ if(b.x1<vx0||b.x0>vx1||b.y1<vy0||b.y0>vy1) continue; ctx.beginPath(); addRing(ctx,b.pts,0,0); ctx.fillStyle = b.h>18?colors['building-tall']:colors['building']; ctx.fill(); if(view.s>1.6){ ctx.lineWidth=1; ctx.strokeStyle=colors.ink; ctx.globalAlpha=.55; ctx.stroke(); ctx.globalAlpha=1; } }
+  for(const b of B){ if(b.x1<vx0||b.x0>vx1||b.y1<vy0||b.y0>vy1) continue; ctx.beginPath(); addRing(ctx,b.pts,0,0); ctx.fillStyle = b.h>18?colors['building-tall']:colors['building']; ctx.fill(); if(view.s>1.6){ ctx.lineWidth=.8; ctx.strokeStyle=colors.ink; ctx.globalAlpha=.22; ctx.stroke(); ctx.globalAlpha=1; } }
   drawStreetLabels(vx0,vy0,vx1,vy1);
   // terraces (visible ones only)
   const labels=[], R=Math.max(6,Math.min(11,view.s*2.6)), m=R/view.s+2, vis=[];
@@ -381,7 +381,7 @@ function draw(){
     if(selected===t.id){ ctx.beginPath(); ctx.arc(X,Y,R+5,0,7); ctx.strokeStyle=colors.pink; ctx.lineWidth=4; ctx.stroke(); }
     ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.fillStyle = f>=.5?colors.yellow:colors.mint; ctx.fill();
     if(f>0&&f<.5){ ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,R,-Math.PI/2,-Math.PI/2+f*2*Math.PI); ctx.closePath(); ctx.fillStyle=colors.yellow; ctx.fill(); }
-    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.lineWidth=2.5; ctx.strokeStyle='#26215E'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.lineWidth=2.5; ctx.strokeStyle=f>=.5?'#2B2B2B':colors.ink; ctx.stroke();
     if(selected===t.id||(t.name&&view.s>0.9)||view.s>3.6) labels.push({t,f,X,Y,R,sel:selected===t.id});
   }
   // labels: selected first, then sunny; try right, left, above, below; skip if no free spot
