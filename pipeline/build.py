@@ -16,7 +16,7 @@ Usage:
   python pipeline/build.py --fixtures DIR 7   # offline, read cached responses from DIR
 """
 import argparse, json, math, os, re, sys, time, unicodedata
-import urllib.parse, urllib.request
+import urllib.error, urllib.parse, urllib.request
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -67,16 +67,29 @@ def http_json(url, data=None, kind="get", key=None, tries=5):
         with open(_cache_name(kind, key or url), encoding="utf-8") as f:
             return json.load(f)
     body = urllib.parse.urlencode(data).encode() if data else None
+    detail = ""
     for attempt in range(tries):
+        text = ""
         try:
             req = urllib.request.Request(url, data=body, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=180) as r:
-                return json.loads(r.read().decode("utf-8"))
+                text = r.read().decode("utf-8", "replace")
+                return json.loads(text)
+        except urllib.error.HTTPError as e:
+            snippet = e.read().decode("utf-8", "replace")[:300]
+            detail = f"HTTP {e.code}: {snippet}"
+        except json.JSONDecodeError:
+            detail = f"not JSON: {text[:300]}"  # WFS errors come back as XML with status 200
         except Exception as e:  # noqa: BLE001 — retry anything transient
-            wait = 5 * 2 ** attempt
-            log(f"  request failed ({e}); retry in {wait}s")
+            detail = f"{type(e).__name__}: {e}"
+        wait = 5 * 2 ** attempt
+        log(f"  request failed ({detail}); retry in {wait}s")
+        if attempt < tries - 1:
             time.sleep(wait)
-    raise RuntimeError(f"giving up on {url}")
+    short = url if len(url) < 300 else url[:300] + "…"
+    if os.environ.get("GITHUB_ACTIONS"):  # visible as an annotation on the run
+        print(f"::error title=Request failed::{short} — {detail}".replace("\n", " "), flush=True)
+    raise RuntimeError(f"giving up on {short}: {detail}")
 
 
 def wfs(type_name, extra, page=5000, key=None):
