@@ -1,1 +1,13 @@
-{"updated": null, "districts": []}
+{
+ "updated": "2026-10-17",
+ "districts": [
+  {
+   "d": 7,
+   "name": "Neubau",
+   "plz": 1070,
+   "terraces": 174,
+   "named": 136,
+   "buildings": 9407
+  }
+ ]
+}
