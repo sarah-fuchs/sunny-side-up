@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sonnenseite Wien</title>
+<title>Sunny Side Up</title>
 <meta name="theme-color" content="#E4F7EF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-17 -17 34 34'%3E%3Cpath d='M16.6 0.0 L16.3 3.7 L14.1 6.8 L11.3 9.0 L8.7 10.9 L6.0 12.5 L3.0 13.2 L0.0 12.9 L-2.9 12.7 L-6.2 13.0 L-10.2 12.8 L-13.6 10.8 L-14.8 7.1 L-13.8 3.2 L-12.4 0.0 L-12.0 -2.7 L-12.1 -5.8 L-11.4 -9.1 L-9.4 -11.7 L-6.5 -13.6 L-3.4 -15.1 L-0.0 -16.1 L3.6 -15.6 L6.3 -13.2 L7.9 -9.9 L9.1 -7.3 L11.3 -5.5 L14.4 -3.3Z' fill='%23fff' stroke='%232B2B2B' stroke-width='2.5'/%3E%3Ccircle cx='1' cy='-1' r='7' fill='%23FFA51F' stroke='%232B2B2B' stroke-width='2.5'/%3E%3C/svg%3E">
@@ -41,7 +41,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
 header{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title sun" "pick pick";gap:10px 14px;align-items:center}
 .title{grid-area:title;min-width:0}
 h1{font-family:var(--display);font-weight:400;font-size:clamp(2.1rem,9vw,3.1rem);line-height:.9;letter-spacing:-.01em;margin:0;color:var(--ink);
-  text-shadow:3px 3px 0 var(--pink)}
+  text-shadow:3px 3px 0 var(--pink);text-wrap:balance}
 .sub{font-size:.95rem;font-weight:500;color:var(--muted);margin-top:8px}
 .sunpath{grid-area:sun;width:150px;text-align:center}
 .sunpath svg{display:block;width:150px;height:auto;overflow:visible;margin-top:6px}
@@ -116,7 +116,7 @@ footer{font-size:.82rem;color:var(--muted);line-height:1.5;max-width:68ch}
 <div class="app">
   <header>
     <div class="title">
-      <h1>Sonnenseite</h1>
+      <h1>Sunny Side Up</h1>
       <div class="sub" id="sub">Schanigärten in the sun, Wien</div>
     </div>
     <div class="sunpath" aria-hidden="true">
@@ -325,8 +325,6 @@ function resize(){ const r=wrap.getBoundingClientRect(); DPR=Math.min(2,window.d
   for(const c of [cv,off]){ c.width=Math.round(W*DPR); c.height=Math.round(H*DPR); } if(!view.fitted) fit(); draw(); }
 const sx = x => W/2 + (x-view.cx)*view.s, sy = y => H/2 - (y-view.cy)*view.s;
 function addRing(c,pts,ox,oy){ for(let i=0;i<pts.length;i++){ const X=sx(pts[i][0]+ox),Y=sy(pts[i][1]+oy); i?c.lineTo(X,Y):c.moveTo(X,Y); } c.closePath(); }
-function eggWhite(c,X,Y,r,seed){ const ph=(seed*1.7)%6.28; c.beginPath();
-  for(let k=0;k<=28;k++){ const a=k/28*2*Math.PI, rr=r*(1+.13*Math.sin(3*a+ph)+.07*Math.cos(5*a+ph*.5)); const x=X+rr*Math.cos(a), y=Y+rr*Math.sin(a); k?c.lineTo(x,y):c.moveTo(x,y); } c.closePath(); }
 function path(c,pts,ox=0,oy=0){ c.beginPath(); pts.forEach(([x,y],i)=>{ const X=sx(x+ox),Y=sy(y+oy); i?c.lineTo(X,Y):c.moveTo(X,Y); }); c.closePath(); }
 const isDark=()=>document.documentElement.matches('[data-theme="dark"]')||(!document.documentElement.matches('[data-theme="light"]')&&matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -380,17 +378,11 @@ function draw(){
   const labels=[], R=Math.max(6,Math.min(11,view.s*2.6)), m=R/view.s+2, vis=[];
   for(const t of TERRACES){ if(t.x<vx0-m||t.x>vx1+m||t.y<vy0-m||t.y>vy1+m) continue; vis.push(t);
     const f=litFraction(t,sun), X=sx(t.x), Y=sy(t.y);
-    const sunny=f>=.5, Rr=sunny?R*1.8:R*.85;
+    const Rr=R;
     if(selected===t.id){ ctx.beginPath(); ctx.arc(X,Y,Rr+5,0,7); ctx.strokeStyle=colors.pink; ctx.lineWidth=4; ctx.stroke(); }
-    if(sunny){ // a fried egg: wobbly white, round yolk, a glint
-      eggWhite(ctx,X,Y,Rr,t.id); ctx.fillStyle='#FFFFFF'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#2B2B2B'; ctx.stroke();
-      ctx.beginPath(); ctx.arc(X+R*.1,Y-R*.1,R*.78,0,7); ctx.fillStyle=colors.yolk; ctx.fill(); ctx.lineWidth=2; ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(X-R*.22,Y-R*.42,R*.25,R*.16,-.5,0,7); ctx.fillStyle='#FFFFFF'; ctx.fill();
-    } else {
-      ctx.beginPath(); ctx.arc(X,Y,Rr,0,7); ctx.fillStyle=colors.mint; ctx.fill();
-      if(f>0){ ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,Rr,-Math.PI/2,-Math.PI/2+f*2*Math.PI); ctx.closePath(); ctx.fillStyle=colors.yolk; ctx.fill(); }
-      ctx.beginPath(); ctx.arc(X,Y,Rr,0,7); ctx.lineWidth=2.5; ctx.strokeStyle='#2B2B2B'; ctx.stroke();
-    }
+    ctx.beginPath(); ctx.arc(X,Y,Rr,0,7); ctx.fillStyle = f>=.5?colors.yolk:colors.mint; ctx.fill();
+    if(f>0&&f<.5){ ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,Rr,-Math.PI/2,-Math.PI/2+f*2*Math.PI); ctx.closePath(); ctx.fillStyle=colors.yolk; ctx.fill(); }
+    ctx.beginPath(); ctx.arc(X,Y,Rr,0,7); ctx.lineWidth=2.5; ctx.strokeStyle='#2B2B2B'; ctx.stroke();
     if(selected===t.id||(t.name&&view.s>0.9)||view.s>3.6) labels.push({t,f,X,Y,R:Rr,sel:selected===t.id});
   }
   // labels: selected first, then sunny; try right, left, above, below; skip if no free spot

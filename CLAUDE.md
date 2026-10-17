@@ -1,6 +1,6 @@
 # sunny-side-up — notes for Claude
 
-Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar terraces) are in direct sun at a given time**, using real building heights to cast shadows. Covers all 23 districts. Repo: `sarah-fuchs/sunny-side-up` (private). The app title in the UI stays "Sonnenseite".
+Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar terraces) are in direct sun at a given time**, using real building heights to cast shadows. Covers all 23 districts. Repo: `sarah-fuchs/sunny-side-up` (public). The app is called "Sunny Side Up" in the UI (renamed from "Sonnenseite").
 
 ## Working rules
 
@@ -17,7 +17,7 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 
 ## Design (decided with Sarah)
 
-- Fried-egg theme ("sunny side up"): the sun is a fried egg on the header sun-path arc; sunny terraces on the map are little fried eggs; shaded ones are mint dots, partly sunny get a yolk pie.
+- Fried-egg theme ("sunny side up"): the sun is a fried egg on the header sun-path arc; map markers are plain circles: yolk orange when sunny, mint when shaded, mint with a yolk pie when partly sunny (egg-shaped markers were tried and dropped).
 - Colours: mint page, pale lemon sunlit ground, soft mint shadows, pastel pink buildings; bright mint / pink / yellow / yolk orange (#FFA51F) only on markers, buttons and tags. Neutral charcoal outlines (#2B2B2B), never dark blue.
 - Dark mode: neutral near-black (#18181A), not blue. Sunny ground mustard, shade dark green.
 - Fonts: Bagel Fat One (display), Figtree (everything else). No monospace, no all-caps labels.
