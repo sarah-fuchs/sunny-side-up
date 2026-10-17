@@ -128,8 +128,8 @@ def main():
             inbox = [f for f in bl if any(w <= c[0] <= e and s <= c[1] <= n
                      for poly in ([f["geometry"]["coordinates"]] if f["geometry"]["type"] == "Polygon" else f["geometry"]["coordinates"])
                      for c in poly[0])]
-            for start in range(0, len(inbox) + 1, 2000):  # same paging as the pipeline
-                dump(f"wfs_bkm_{d:02d}_{i}_{start}.json", {"type": "FeatureCollection", "features": inbox[start:start + 2000]})
+            for start in range(0, len(inbox) + 1, 1000):  # same paging as the pipeline
+                dump(f"wfs_bkm_{d:02d}_{i}_{start}.json", {"type": "FeatureCollection", "features": inbox[start:start + 1000]})
         dump(f"osm_streets_{d:02d}.json", streets_for(lon0, lat0, nx, ny))
     print("fixtures written to", FX)
 

@@ -110,6 +110,14 @@ def wfs(type_name, extra, page=5000, key=None):
         start += page
 
 
+def wfs_all(type_name, key):
+    """One plain WFS 1.0.0 request for a whole (small) layer — the URL format Stadt Wien publishes."""
+    params = {"service": "WFS", "request": "GetFeature", "version": "1.0.0",
+              "typeName": type_name, "srsName": "EPSG:4326", "outputFormat": "json"}
+    url = WFS + "?" + urllib.parse.urlencode(params, safe=":")
+    return http_json(url, kind="wfs", key=f"{key}_0").get("features", [])
+
+
 def overpass(query, key):
     return http_json(OVERPASS, data={"data": query}, kind="osm", key=key)
 
@@ -205,7 +213,7 @@ def fmt_number(n):
 
 def load_terraces():
     log("Fetching Schanigärten …")
-    feats = wfs("ogdwien:SCHANIGARTENOGD", {}, key="schani")
+    feats = wfs_all("ogdwien:SCHANIGARTENOGD", key="schani")
     by_addr = {}
     for f in feats:
         p = f.get("properties", {})
@@ -353,7 +361,7 @@ def load_buildings(d, terraces, proj):
     seen, raw = set(), []
     for i, (w, s, e, n) in enumerate(boxes):
         bbox = f"{s:.6f},{w:.6f},{n:.6f},{e:.6f},urn:ogc:def:crs:EPSG::4326"
-        feats = wfs("ogdwien:FMZKBKMOGD", {"bbox": bbox, "sortBy": "FMZK_ID"}, page=2000,
+        feats = wfs("ogdwien:FMZKBKMOGD", {"bbox": bbox, "sortBy": "FMZK_ID"}, page=1000,
                     key=f"bkm_{d:02d}_{i}")
         for f in feats:
             p = f.get("properties", {})
