@@ -250,6 +250,7 @@ def load_terraces():
         t["lat"] = sum(la * max(a, 1) for _, la, a in t["pts"]) / w
         out[t["d"]].append(t)
     log(f"  {sum(len(v) for v in out.values())} terraces at distinct addresses")
+    annotate("notice", "Schanigärten", f"{len(feats)} rows, {sum(len(v) for v in out.values())} terraces; sample: {json.dumps(feats[0].get('properties', {}), ensure_ascii=False)[:400] if feats else 'none'}")
     return out
 
 
@@ -493,7 +494,9 @@ def main():
         try:
             index[d] = build_district(d, terraces[d], venues, overrides)
         except Exception as e:  # keep going; one bad district shouldn't block the rest
+            import traceback
             log(f"District {d} FAILED: {e}")
+            annotate("error", f"District {d} failed", traceback.format_exc()[-1500:])
             failed.append(d)
 
     with open(idx_path, "w", encoding="utf-8") as f:
@@ -506,5 +509,18 @@ def main():
         sys.exit(1)
 
 
+def annotate(level, title, msg):
+    if os.environ.get("GITHUB_ACTIONS"):
+        msg = msg.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+        print(f"::{level} title={title}::{msg}", flush=True)
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception:
+        import traceback
+        annotate("error", "Pipeline crashed", traceback.format_exc()[-1500:])
+        raise
