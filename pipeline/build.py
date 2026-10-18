@@ -62,34 +62,42 @@ def _cache_name(kind, key):
     return os.path.join(FIXTURES, f"{kind}_{safe}.json")
 
 
-def http_json(url, data=None, kind="get", key=None, tries=5):
+class ServerUnreachable(RuntimeError):
+    """The server stopped answering at all (connection timeouts / refused)."""
+
+
+PAUSE = 0.7   # seconds between requests, to stay polite with the city server
+WAITS = [10, 30, 90, 180]  # backoff between attempts
+
+
+def http_json(url, data=None, kind="get", key=None, tries=len(WAITS) + 1):
     if FIXTURES:
         with open(_cache_name(kind, key or url), encoding="utf-8") as f:
             return json.load(f)
     body = urllib.parse.urlencode(data).encode() if data else None
-    detail = ""
+    detail, unreachable = "", False
     for attempt in range(tries):
         text = ""
+        time.sleep(PAUSE)
         try:
             req = urllib.request.Request(url, data=body, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=180) as r:
+            with urllib.request.urlopen(req, timeout=90) as r:
                 text = r.read().decode("utf-8", "replace")
                 return json.loads(text)
         except urllib.error.HTTPError as e:
             snippet = e.read().decode("utf-8", "replace")[:300]
-            detail = f"HTTP {e.code}: {snippet}"
+            detail, unreachable = f"HTTP {e.code}: {snippet}", False
         except json.JSONDecodeError:
-            detail = f"not JSON: {text[:300]}"  # WFS errors come back as XML with status 200
+            detail, unreachable = f"not JSON: {text[:300]}", False  # WFS errors come back as XML with status 200
         except Exception as e:  # noqa: BLE001 — retry anything transient
-            detail = f"{type(e).__name__}: {e}"
-        wait = 5 * 2 ** attempt
-        log(f"  request failed ({detail}); retry in {wait}s")
+            detail, unreachable = f"{type(e).__name__}: {e}", True
         if attempt < tries - 1:
+            wait = WAITS[attempt]
+            log(f"  request failed ({detail[:200]}); retry in {wait}s")
             time.sleep(wait)
     short = url if len(url) < 300 else url[:300] + "…"
-    if os.environ.get("GITHUB_ACTIONS"):  # visible as an annotation on the run
-        print(f"::error title=Request failed::{short} — {detail}".replace("\n", " "), flush=True)
-    raise RuntimeError(f"giving up on {short}: {detail}")
+    log(f"  giving up: {detail[:300]}")
+    raise (ServerUnreachable if unreachable else RuntimeError)(f"giving up on {short}: {detail[:300]}")
 
 
 def wfs(type_name, extra, page=5000, key=None):
@@ -470,6 +478,7 @@ def main():
     global FIXTURES, OUT
     ap = argparse.ArgumentParser()
     ap.add_argument("districts", nargs="*", type=int)
+    ap.add_argument("--missing", action="store_true", help="only districts that have no data file yet")
     ap.add_argument("--fixtures", help="read cached responses from this folder (offline tests)")
     ap.add_argument("--out", default=OUT, help="output data folder (default web/data)")
     a = ap.parse_args()
@@ -477,6 +486,11 @@ def main():
     OUT = a.out
     wanted = a.districts or sorted(DISTRICTS)
     os.makedirs(os.path.join(OUT, "districts"), exist_ok=True)
+    if a.missing:
+        wanted = [d for d in wanted if not os.path.exists(os.path.join(OUT, "districts", f"{d:02d}.json"))]
+        log(f"Missing districts: {wanted or 'none'}")
+        if not wanted:
+            return
 
     terraces = load_terraces()
     venues = load_osm_venues()
@@ -486,32 +500,44 @@ def main():
     try:
         with open(idx_path, encoding="utf-8") as f:
             index = {e["d"]: e for e in json.load(f)["districts"]}
-    except (FileNotFoundError, KeyError, json.JSONDecodeError):
+    except (FileNotFoundError, KeyError, json.JSONDecodeError, TypeError):
         index = {}
 
-    failed = []
-    for d in wanted:
+    def save_index():
+        with open(idx_path, "w", encoding="utf-8") as f:
+            json.dump({"updated": time.strftime("%Y-%m-%d"),
+                       "districts": [index[k] for k in sorted(index)]},
+                      f, ensure_ascii=False, indent=1)
+
+    done, failed, unreachable_in_a_row = [], [], 0
+    for n, d in enumerate(wanted):
         if not terraces.get(d):
             log(f"District {d}: no terraces, skipped")
             continue
         try:
             index[d] = build_district(d, terraces[d], venues, overrides)
+            save_index()  # progress survives a later failure or timeout
+            done.append(d)
+            unreachable_in_a_row = 0
         except Exception as e:  # keep going; one bad district shouldn't block the rest
             import traceback
             log(f"District {d} FAILED: {e}")
-            annotate("error", f"District {d} failed", traceback.format_exc()[-1500:])
+            annotate("error", f"District {d} failed", traceback.format_exc()[-1200:])
             failed.append(d)
+            unreachable_in_a_row = unreachable_in_a_row + 1 if isinstance(e, ServerUnreachable) else 0
+            if unreachable_in_a_row >= 2:
+                rest = [x for x in wanted[n + 1:] if terraces.get(x)]
+                failed += rest
+                annotate("error", "City server stopped answering",
+                         f"Stopped early after two districts in a row could not reach the server. "
+                         f"Built: {done or 'none'}. Not built: {failed}. Run the workflow again later with 'missing'.")
+                break
 
-    with open(idx_path, "w", encoding="utf-8") as f:
-        json.dump({"updated": time.strftime("%Y-%m-%d"),
-                   "districts": [index[k] for k in sorted(index)]},
-                  f, ensure_ascii=False, indent=1)
-    log(f"wrote {os.path.relpath(idx_path, ROOT)}")
-    if failed:
-        log(f"failed districts: {failed}")
-        annotate("warning", "Some districts failed", f"Not updated: {failed}. The other districts were saved; re-run with just these numbers.")
-        if len(failed) == len(wanted):
-            sys.exit(1)  # nothing worked: fail the run
+    save_index()
+    log(f"done: {done}; failed: {failed}")
+    annotate("notice", "Summary", f"Built: {done or 'none'}. Not built: {failed or 'none'}.")
+    if failed and not done:
+        sys.exit(1)  # nothing worked: fail the run
 
 
 def annotate(level, title, msg):

@@ -29,7 +29,8 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 - `pipeline/build.py` — stdlib-only Python. Fetches terraces, buildings, OSM names and streets; writes `web/data/districts/<NN>.json` and `web/data/index.json`. `--fixtures DIR` reads cached responses instead of the network.
 - `pipeline/overrides.json` — hand-maintained address → name (wins over OSM).
 - `web/index.html` — the app, plain HTML/JS, no build step. Loads `data/index.json`, then a district file. District in URL hash (`#7`) and localStorage.
-- `.github/workflows/build.yml` — runs the pipeline (manual with optional district list, monthly cron), commits data, deploys `web/` to Pages. Pages on a private repo needs a paid plan; otherwise use Cloudflare Pages/Netlify with output dir `web`.
+- `.github/workflows/build.yml` — runs the pipeline (manual with optional district list or `missing`, monthly cron), commits whatever was built even if the run fails, deploys `web/` to Pages. The pipeline saves `index.json` after every district, pauses between requests, and stops early if the city server stops answering for two districts in a row (it did once, mid-run, on 2026-10-18).
+- `.github/workflows/probe.yml` — manual check whether data.wien.gv.at and Overpass answer from a GitHub runner; results appear as annotations. Pages on a private repo needs a paid plan; otherwise use Cloudflare Pages/Netlify with output dir `web`.
 - `tests/` — fixture generator + offline smoke test.
 - `prototype/` — notes on the original Spittelberg prototype (files kept in the Claude project).
 

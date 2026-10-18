@@ -20,7 +20,7 @@ pipeline/build.py  ──►  web/data/index.json
 
 ## Running it
 
-**Data** is built by the GitHub Action *Build data and deploy* (Actions tab → Run workflow; optionally list district numbers like `7 6 1`). It also runs monthly and commits updated files in `web/data/`.
+**Data** is built by the GitHub Action *Build data and deploy* (Actions tab → Run workflow; optionally list district numbers like `7 6 1`, or type `missing` to build only districts that have no data yet). It also runs monthly and commits updated files in `web/data/`.
 
 Locally:
 

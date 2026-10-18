@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       districts:
-        description: "District numbers, space separated (empty = all 23)"
+        description: "District numbers, space separated. Empty = all 23. 'missing' = only districts without data yet."
         required: false
         default: ""
   schedule:
@@ -26,26 +26,36 @@ jobs:
   data:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Run pipeline
-        run: python pipeline/build.py ${{ github.event.inputs.districts }}
+        timeout-minutes: 300
+        env:
+          DISTRICTS: ${{ github.event.inputs.districts }}
+        run: |
+          if [ "$DISTRICTS" = "missing" ]; then
+            python pipeline/build.py --missing
+          else
+            python pipeline/build.py $DISTRICTS
+          fi
       - name: Commit data
+        if: always()   # keep every district that was built, even if the run failed or timed out
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add web/data
           if git diff --cached --quiet; then echo "No data changes"; exit 0; fi
           git commit -m "Update district data"
+          git pull --rebase origin main
           git push
 
   deploy:
     needs: data
-    if: always() && (needs.data.result == 'success' || needs.data.result == 'skipped')
+    if: always()
     runs-on: ubuntu-latest
     environment:
       name: github-pages
