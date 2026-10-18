@@ -509,7 +509,9 @@ def main():
     log(f"wrote {os.path.relpath(idx_path, ROOT)}")
     if failed:
         log(f"failed districts: {failed}")
-        sys.exit(1)
+        annotate("warning", "Some districts failed", f"Not updated: {failed}. The other districts were saved; re-run with just these numbers.")
+        if len(failed) == len(wanted):
+            sys.exit(1)  # nothing worked: fail the run
 
 
 def annotate(level, title, msg):
