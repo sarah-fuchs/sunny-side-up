@@ -1,0 +1,23 @@
+name: Check data servers
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe
+        run: |
+          probe() {
+            name="$1"; url="$2"
+            out=$(curl -sS -o /tmp/body -w "%{http_code} %{time_connect}s connect, %{time_total}s total, %{size_download} bytes" --connect-timeout 20 --max-time 60 -A "sunny-side-up/1.0" "$url" 2>&1) || true
+            echo "::notice title=$name::$out $(head -c 150 /tmp/body 2>/dev/null | tr '\n' ' ')"
+          }
+          echo "::notice title=Runner IP::$(curl -sS --max-time 10 https://api.ipify.org || echo unknown)"
+          probe "Terraces (1 row)" "https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=1.0.0&typeName=ogdwien:SCHANIGARTENOGD&srsName=EPSG:4326&outputFormat=json&maxFeatures=1"
+          probe "Buildings small bbox" "https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=2.0.0&typeNames=ogdwien:FMZKBKMOGD&srsName=EPSG:4326&outputFormat=json&bbox=48.2028,16.3538,48.2041,16.3572,urn:ogc:def:crs:EPSG::4326&count=30&startIndex=0&sortBy=FMZK_ID"
+          probe "Buildings no sortBy" "https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=2.0.0&typeNames=ogdwien:FMZKBKMOGD&srsName=EPSG:4326&outputFormat=json&bbox=48.2028,16.3538,48.2041,16.3572,urn:ogc:def:crs:EPSG::4326&count=30"
+          probe "Main page" "https://data.wien.gv.at/"
+          probe "Overpass status" "https://overpass-api.de/api/status"
