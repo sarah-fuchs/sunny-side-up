@@ -18,8 +18,9 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 ## Design (decided with Sarah)
 
 - Fried-egg theme ("sunny side up"): the sun is a fried egg on the header sun-path arc; map markers are plain circles: yolk orange when sunny, mint when shaded, mint with a yolk pie when partly sunny (egg-shaped markers were tried and dropped).
-- Colours: mint page, pale lemon sunlit ground, soft mint shadows, pastel pink buildings; bright mint / pink / yellow / yolk orange (#FFA51F) only on markers, buttons and tags. Neutral charcoal outlines (#2B2B2B), never dark blue.
-- Dark mode: neutral near-black (#18181A), not blue. Sunny ground mustard, shade dark green.
+- Map: dark grey buildings, soft lilac shadows (#5B4FD6 at 34 %), cream sunlit ground (#FFF9E6) — chosen over mint/pink/green variants because buildings and shadows read clearly, like the first prototype.
+- Colours: mint page; bright mint / pink / yellow / yolk orange (#FFA51F) only on markers, buttons and tags. Neutral charcoal outlines (#2B2B2B), never dark blue.
+- Dark mode: neutral near-black (#18181A), not blue. Map: grey buildings, near-black shadows, warm olive sunlit ground.
 - Fonts: Bagel Fat One (display), Figtree (everything else). No monospace, no all-caps labels.
 - Sticker look: thick outlines with flat offset shadows on map, controls and selected terrace.
 
