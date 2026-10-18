@@ -15,8 +15,8 @@
 :root{
   --paper:#E4F7EF; --card:#FFFFFF; --ink:#2B2B2B; --muted:#62646A; --hair:rgba(43,43,43,.16);
   --yellow:#FFE347; --yolk:#FFA51F; --yellow-ink:#5C4700; --mint:#8FEACF; --mint-deep:#16A985; --pink:#FF5FAE; --pink-soft:#FFE0EF;
-  --street:#FFF9E6; --shade:#5B4FD6; --building:#4A4A55; --building-tall:#36363F;
-  --shadow-a:.34; --lift:4px 4px 0 var(--ink); --lift-s:3px 3px 0 var(--ink);
+  --street:#FFD84D; --shade:#B9B0EE; --building:#4A4A55; --building-tall:#36363F;
+  --shadow-a:1; --lift:4px 4px 0 var(--ink); --lift-s:3px 3px 0 var(--ink);
   --display:"Bagel Fat One", "Cooper Black", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme:light;
@@ -24,13 +24,13 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#18181A; --card:#242427; --ink:#F4F4F1; --muted:#B4B4AE; --hair:rgba(244,244,241,.18);
   --yellow:#FFE347; --yolk:#FFAE2E; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
-  --street:#6B5F3F; --shade:#140F2E; --building:#6E6E7A; --building-tall:#5C5C67;
-  --shadow-a:.72; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }}
+  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67;
+  --shadow-a:1; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }}
 :root[data-theme="dark"]{
   --paper:#18181A; --card:#242427; --ink:#F4F4F1; --muted:#B4B4AE; --hair:rgba(244,244,241,.18);
   --yellow:#FFE347; --yolk:#FFAE2E; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
-  --street:#6B5F3F; --shade:#140F2E; --building:#6E6E7A; --building-tall:#5C5C67;
-  --shadow-a:.72; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }
+  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67;
+  --shadow-a:1; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }
 
 *{box-sizing:border-box}
 body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;margin:0;-webkit-font-smoothing:antialiased}
@@ -370,7 +370,7 @@ function draw(){
     }
     ctx.globalAlpha = colors.shadeA;
     ctx.drawImage(off,0,0,W,H); ctx.globalAlpha=1;
-  } else { ctx.globalAlpha=.35; ctx.fillStyle=colors.shade; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; }
+  } else { ctx.globalAlpha=.9; ctx.fillStyle=colors.shade; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; }
   // buildings: tone by height
   for(const b of B){ if(b.x1<vx0||b.x0>vx1||b.y1<vy0||b.y0>vy1) continue; ctx.beginPath(); addRing(ctx,b.pts,0,0); ctx.fillStyle = b.h>18?colors['building-tall']:colors['building']; ctx.fill(); if(view.s>1.6){ ctx.lineWidth=.8; ctx.strokeStyle=colors.ink; ctx.globalAlpha=.22; ctx.stroke(); ctx.globalAlpha=1; } }
   drawStreetLabels(vx0,vy0,vx1,vy1);
