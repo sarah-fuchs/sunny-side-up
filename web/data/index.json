@@ -1,6 +1,54 @@
 {
- "updated": "2026-10-17",
+ "updated": "2026-10-18",
  "districts": [
+  {
+   "d": 1,
+   "name": "Innere Stadt",
+   "plz": 1010,
+   "terraces": 440,
+   "named": 321,
+   "buildings": 8158
+  },
+  {
+   "d": 2,
+   "name": "Leopoldstadt",
+   "plz": 1020,
+   "terraces": 175,
+   "named": 126,
+   "buildings": 11089
+  },
+  {
+   "d": 3,
+   "name": "Landstraße",
+   "plz": 1030,
+   "terraces": 184,
+   "named": 127,
+   "buildings": 12946
+  },
+  {
+   "d": 4,
+   "name": "Wieden",
+   "plz": 1040,
+   "terraces": 122,
+   "named": 89,
+   "buildings": 6921
+  },
+  {
+   "d": 5,
+   "name": "Margareten",
+   "plz": 1050,
+   "terraces": 107,
+   "named": 83,
+   "buildings": 7180
+  },
+  {
+   "d": 6,
+   "name": "Mariahilf",
+   "plz": 1060,
+   "terraces": 136,
+   "named": 109,
+   "buildings": 7630
+  },
   {
    "d": 7,
    "name": "Neubau",
@@ -8,6 +56,134 @@
    "terraces": 174,
    "named": 136,
    "buildings": 9407
+  },
+  {
+   "d": 8,
+   "name": "Josefstadt",
+   "plz": 1080,
+   "terraces": 117,
+   "named": 82,
+   "buildings": 6765
+  },
+  {
+   "d": 9,
+   "name": "Alsergrund",
+   "plz": 1090,
+   "terraces": 163,
+   "named": 121,
+   "buildings": 8686
+  },
+  {
+   "d": 10,
+   "name": "Favoriten",
+   "plz": 1100,
+   "terraces": 115,
+   "named": 63,
+   "buildings": 12026
+  },
+  {
+   "d": 11,
+   "name": "Simmering",
+   "plz": 1110,
+   "terraces": 27,
+   "named": 18,
+   "buildings": 3299
+  },
+  {
+   "d": 12,
+   "name": "Meidling",
+   "plz": 1120,
+   "terraces": 84,
+   "named": 50,
+   "buildings": 7776
+  },
+  {
+   "d": 13,
+   "name": "Hietzing",
+   "plz": 1130,
+   "terraces": 28,
+   "named": 19,
+   "buildings": 2887
+  },
+  {
+   "d": 14,
+   "name": "Penzing",
+   "plz": 1140,
+   "terraces": 71,
+   "named": 43,
+   "buildings": 7516
+  },
+  {
+   "d": 15,
+   "name": "Rudolfsheim-Fünfhaus",
+   "plz": 1150,
+   "terraces": 129,
+   "named": 95,
+   "buildings": 9856
+  },
+  {
+   "d": 16,
+   "name": "Ottakring",
+   "plz": 1160,
+   "terraces": 109,
+   "named": 62,
+   "buildings": 11036
+  },
+  {
+   "d": 17,
+   "name": "Hernals",
+   "plz": 1170,
+   "terraces": 80,
+   "named": 61,
+   "buildings": 8464
+  },
+  {
+   "d": 18,
+   "name": "Währing",
+   "plz": 1180,
+   "terraces": 48,
+   "named": 32,
+   "buildings": 5860
+  },
+  {
+   "d": 19,
+   "name": "Döbling",
+   "plz": 1190,
+   "terraces": 65,
+   "named": 41,
+   "buildings": 7775
+  },
+  {
+   "d": 20,
+   "name": "Brigittenau",
+   "plz": 1200,
+   "terraces": 97,
+   "named": 62,
+   "buildings": 6808
+  },
+  {
+   "d": 21,
+   "name": "Floridsdorf",
+   "plz": 1210,
+   "terraces": 68,
+   "named": 34,
+   "buildings": 8447
+  },
+  {
+   "d": 22,
+   "name": "Donaustadt",
+   "plz": 1220,
+   "terraces": 59,
+   "named": 31,
+   "buildings": 9662
+  },
+  {
+   "d": 23,
+   "name": "Liesing",
+   "plz": 1230,
+   "terraces": 16,
+   "named": 8,
+   "buildings": 2976
   }
  ]
 }
