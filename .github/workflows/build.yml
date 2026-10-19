@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       districts:
-        description: "District numbers, space separated. Empty = all 23. 'missing' = only districts without data yet."
+        description: "District numbers, space separated. Empty = all 23. 'missing' = only districts without data yet. 'city' = only the city overview and water."
         required: false
         default: ""
   schedule:
@@ -39,6 +39,8 @@ jobs:
         run: |
           if [ "$DISTRICTS" = "missing" ]; then
             python pipeline/build.py --missing
+          elif [ "$DISTRICTS" = "city" ]; then
+            python pipeline/build.py --city-only
           else
             python pipeline/build.py $DISTRICTS
           fi

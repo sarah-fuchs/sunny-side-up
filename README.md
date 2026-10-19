@@ -15,12 +15,13 @@ pipeline/build.py  ──►  web/data/index.json
 - **Terraces**: approved Schanigärten from `ogdwien:SCHANIGARTENOGD`, merged per address (Gehsteig + Parkspur rows become one terrace).
 - **Buildings**: `ogdwien:FMZKBKMOGD`, only parts within 150 m of a terrace, height = `O_KOTE − T_KOTE`, simplified to 0.3 m.
 - **Names**: `pipeline/overrides.json` first, then OpenStreetMap venues matched by street + house number, then a single named venue within 12 m. Terraces with no name show their address.
-- **Street labels**: named OSM street centrelines.
+- **Street labels and water**: named OSM street centrelines; water areas and river lines from OSM.
+- **One map**: `web/data/city.json` holds every terrace plus water for the zoomed-out view; the district files load as you zoom in.
 - **Sun**: computed in the browser (SunCalc formulas), 10-minute steps, ≥ 50 % of five sample points lit counts as sunny.
 
 ## Running it
 
-**Data** is built by the GitHub Action *Build data and deploy* (Actions tab → Run workflow; optionally list district numbers like `7 6 1`, or type `missing` to build only districts that have no data yet). It also runs monthly and commits updated files in `web/data/`.
+**Data** is built by the GitHub Action *Build data and deploy* (Actions tab → Run workflow; optionally list district numbers like `7 6 1`, type `missing` to build only districts that have no data yet, or `city` to refresh just the overview and water). It also runs monthly and commits updated files in `web/data/`.
 
 Locally:
 

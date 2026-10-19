@@ -474,11 +474,182 @@ def build_district(d, terraces, venues, overrides):
             "named": sum(1 for t in out_t if t.get("name")), "buildings": len(buildings)}
 
 
+# ---------------------------------------------------------------- city overview + water
+
+CITY_CENTER = (16.3725, 48.2083)
+VIENNA_BBOX = (16.17, 48.11, 16.58, 48.33)
+WATER_SIMPLIFY_M = 1.5
+WATER_MIN_M2 = 300
+
+
+def _ring_area(pts):
+    a = 0.0
+    for i in range(len(pts)):
+        x0, y0 = pts[i - 1]
+        x1, y1 = pts[i]
+        a += x0 * y1 - x1 * y0
+    return a / 2
+
+
+def _join_ways(parts):
+    """Join open way geometries (lists of (lon, lat)) into closed rings."""
+    parts = [list(p) for p in parts if len(p) >= 2]
+    rings = []
+    while parts:
+        cur = parts.pop()
+        changed = True
+        while cur[0] != cur[-1] and changed:
+            changed = False
+            for i, p in enumerate(parts):
+                if p[0] == cur[-1]:
+                    cur += p[1:]
+                elif p[-1] == cur[-1]:
+                    cur += p[::-1][1:]
+                elif p[-1] == cur[0]:
+                    cur = p[:-1] + cur
+                elif p[0] == cur[0]:
+                    cur = p[::-1][:-1] + cur
+                else:
+                    continue
+                parts.pop(i)
+                changed = True
+                break
+        if cur[0] == cur[-1] and len(cur) >= 4:
+            rings.append(cur)
+    return rings
+
+
+def _clean_ring(ring, proj):
+    """Simplify; returns ([[lon, lat], ...], area_m2) or None."""
+    pts = [proj.xy(lon, lat) for lon, lat in ring]
+    if pts[0] == pts[-1]:
+        pts = pts[:-1]
+    if len(pts) < 3:
+        return None
+    area = abs(_ring_area(pts))
+    if area < WATER_MIN_M2:
+        return None
+    far = max(range(len(pts)), key=lambda i: (pts[i][0] - pts[0][0]) ** 2 + (pts[i][1] - pts[0][1]) ** 2)
+    out = dp(pts[: far + 1], WATER_SIMPLIFY_M)[:-1] + dp(pts[far:] + [pts[0]], WATER_SIMPLIFY_M)[:-1]
+    if len(out) < 3:
+        return None
+    return [[round(v, 5) for v in proj.ll(x, y)] for x, y in out], area
+
+
+def _in_vienna(ring):
+    w, s_, e, n = VIENNA_BBOX
+    return any(w <= lon <= e and s_ <= lat <= n for lon, lat in ring)
+
+
+def load_water():
+    """Water areas (Danube, Donaukanal, Wienfluss, ponds) and river/canal centre lines from OSM."""
+    log("Fetching water …")
+    q = """[out:json][timeout:300];
+area["name"="Wien"]["admin_level"="4"]->.a;
+(way["natural"="water"](area.a); relation["natural"="water"](area.a);
+ way["waterway"="riverbank"](area.a); relation["waterway"="riverbank"](area.a););
+out geom;
+way["waterway"~"^(river|canal)$"](area.a);
+out geom;"""
+    j = overpass(q, "water")
+    proj = Proj(*CITY_CENTER)
+    polys, lines = [], []
+    for el in j.get("elements", []):
+        tags = el.get("tags", {})
+        is_area = tags.get("natural") == "water" or tags.get("waterway") == "riverbank"
+        if el["type"] == "way" and not is_area:
+            g = [(p["lon"], p["lat"]) for p in el.get("geometry") or []]
+            if len(g) >= 2 and _in_vienna(g):
+                pts = dp([proj.xy(*p) for p in g], 2.0)
+                lines.append([[round(v, 5) for v in proj.ll(x, y)] for x, y in pts])
+            continue
+        if el["type"] == "way":
+            g = [(p["lon"], p["lat"]) for p in el.get("geometry") or []]
+            outers, inners = ([g] if len(g) >= 4 and g[0] == g[-1] else []), []
+        elif el["type"] == "relation":
+            ow = [[(p["lon"], p["lat"]) for p in m.get("geometry") or []] for m in el.get("members", [])
+                  if m.get("type") == "way" and m.get("role", "outer") in ("outer", "")]
+            iw = [[(p["lon"], p["lat"]) for p in m.get("geometry") or []] for m in el.get("members", [])
+                  if m.get("type") == "way" and m.get("role") == "inner"]
+            outers, inners = _join_ways(ow), _join_ways(iw)
+        else:
+            continue
+        holes = [c for c in (_clean_ring(r, proj) for r in inners) if c]
+        for r in outers:
+            if not _in_vienna(r):
+                continue
+            c = _clean_ring(r, proj)
+            if not c:
+                continue
+            # attach holes that lie inside this outer ring's bbox
+            lo = [p[0] for p in c[0]]; la = [p[1] for p in c[0]]
+            mine = [h[0] for h in holes if min(lo) <= h[0][0][0] <= max(lo) and min(la) <= h[0][0][1] <= max(la)]
+            polys.append([c[0]] + mine)
+    log(f"  {len(polys)} water areas, {len(lines)} river lines")
+    return {"areas": polys, "lines": lines}
+
+
+def write_city(fetch_water=True):
+    """city.json: every terrace of every built district + water; also district bboxes in index.json."""
+    idx_path = os.path.join(OUT, "index.json")
+    city_path = os.path.join(OUT, "city.json")
+    try:
+        with open(idx_path, encoding="utf-8") as f:
+            index = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        log("no index.json, city overview skipped")
+        return
+    terraces = []
+    for e in index.get("districts", []):
+        path = os.path.join(OUT, "districts", f"{e['d']:02d}.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            continue
+        lons, lats = [], []
+        for t in data["terraces"]:
+            row = {k: t[k] for k in ("id", "addr", "kind", "m2", "lon", "lat")}
+            row["d"] = e["d"]
+            for k in ("name", "note"):
+                if t.get(k):
+                    row[k] = t[k]
+            terraces.append(row)
+            lons.append(t["lon"]); lats.append(t["lat"])
+        for b in data["buildings"]:
+            for lon, lat in b["r"]:
+                lons.append(lon); lats.append(lat)
+        if lons:
+            e["bbox"] = [round(min(lons), 5), round(min(lats), 5), round(max(lons), 5), round(max(lats), 5)]
+            e["center"] = data["center"]
+    with open(idx_path, "w", encoding="utf-8") as f:
+        json.dump(index, f, ensure_ascii=False, indent=1)
+    try:
+        with open(city_path, encoding="utf-8") as f:
+            old_water = json.load(f).get("water") or {"areas": [], "lines": []}
+    except (FileNotFoundError, json.JSONDecodeError):
+        old_water = {"areas": [], "lines": []}
+    water = old_water
+    if fetch_water:
+        try:
+            water = load_water()
+        except Exception as e:  # keep the old water rather than failing the whole run
+            log(f"water failed, keeping previous: {e}")
+            annotate("warning", "Water not updated", str(e)[:300])
+    city = {"updated": index.get("updated"), "center": list(CITY_CENTER), "terraces": terraces, "water": water}
+    with open(city_path, "w", encoding="utf-8") as f:
+        json.dump(city, f, ensure_ascii=False, separators=(",", ":"))
+    log(f"wrote {os.path.relpath(city_path, ROOT)}: {len(terraces)} terraces, "
+        f"{len(water['areas'])} water areas ({os.path.getsize(city_path) / 1e6:.2f} MB)")
+
+
 def main():
     global FIXTURES, OUT
     ap = argparse.ArgumentParser()
     ap.add_argument("districts", nargs="*", type=int)
     ap.add_argument("--missing", action="store_true", help="only districts that have no data file yet")
+    ap.add_argument("--city-only", action="store_true", help="only rebuild city.json (all terraces + water) from existing district files")
+    ap.add_argument("--no-water", action="store_true", help="don't fetch water; keep what city.json has")
     ap.add_argument("--fixtures", help="read cached responses from this folder (offline tests)")
     ap.add_argument("--out", default=OUT, help="output data folder (default web/data)")
     a = ap.parse_args()
@@ -486,10 +657,14 @@ def main():
     OUT = a.out
     wanted = a.districts or sorted(DISTRICTS)
     os.makedirs(os.path.join(OUT, "districts"), exist_ok=True)
+    if a.city_only:
+        write_city(fetch_water=not a.no_water)
+        return
     if a.missing:
         wanted = [d for d in wanted if not os.path.exists(os.path.join(OUT, "districts", f"{d:02d}.json"))]
         log(f"Missing districts: {wanted or 'none'}")
         if not wanted:
+            write_city(fetch_water=not a.no_water)
             return
 
     terraces = load_terraces()
@@ -534,6 +709,7 @@ def main():
                 break
 
     save_index()
+    write_city(fetch_water=not a.no_water)
     log(f"done: {done}; failed: {failed}")
     annotate("notice", "Summary", f"Built: {done or 'none'}. Not built: {failed or 'none'}.")
     if failed and not done:

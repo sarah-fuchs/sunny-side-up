@@ -131,6 +131,21 @@ def main():
             for start in range(0, len(inbox) + 1, 1000):  # same paging as the pipeline
                 dump(f"wfs_bkm_{d:02d}_{i}_{start}.json", {"type": "FeatureCollection", "features": inbox[start:start + 1000]})
         dump(f"osm_streets_{d:02d}.json", streets_for(lon0, lat0, nx, ny))
+    # water: a river relation made of two open ways + an island, a closed-way pond, a river line
+    pj = build.Proj(16.3555, 48.2030)
+    def ll(x, y): return dict(zip(("lon", "lat"), pj.ll(x, y)))
+    north = [ll(-400, -330), ll(0, -310), ll(400, -330)]
+    south = [ll(400, -330), ll(400, -380), ll(0, -360), ll(-400, -380), ll(-400, -330)]
+    island = [ll(-50, -350), ll(50, -350), ll(50, -340), ll(-50, -340), ll(-50, -350)]
+    pond = [ll(250, 250), ll(300, 250), ll(300, 290), ll(250, 290), ll(250, 250)]
+    dump("osm_water.json", {"elements": [
+        {"type": "relation", "tags": {"natural": "water", "water": "river"}, "members": [
+            {"type": "way", "role": "outer", "geometry": north},
+            {"type": "way", "role": "outer", "geometry": south},
+            {"type": "way", "role": "inner", "geometry": island}]},
+        {"type": "way", "tags": {"natural": "water"}, "geometry": pond},
+        {"type": "way", "tags": {"waterway": "river", "name": "Testbach"}, "geometry": [ll(-400, 120), ll(0, 140), ll(400, 120)]},
+    ]})
     print("fixtures written to", FX)
 
 

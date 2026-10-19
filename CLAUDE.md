@@ -13,7 +13,7 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 - **Keep the custom canvas map rendering** (warm = sunlit ground, cool = shadow, buildings drawn from footprints). Don't replace it with a tile map.
 - **Show venue names** on the map and in the list, with the address alongside. Terraces with no known name show just the address; never write "name unknown".
 - **No weather / cloud forecast.**
-- District picker; everything else in the UI stays as in the prototype.
+- **One map for all of Vienna** (decided 2026-10-19, replaced the per-district view): pan/zoom freely; water in blue. The district picker is a "Jump to" shortcut that centres on the district's busiest café cluster. The list shows the terraces in view, sunniest first.
 
 ## Design (decided with Sarah)
 
@@ -28,8 +28,9 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 
 - `pipeline/build.py` — stdlib-only Python. Fetches terraces, buildings, OSM names and streets; writes `web/data/districts/<NN>.json` and `web/data/index.json`. `--fixtures DIR` reads cached responses instead of the network.
 - `pipeline/overrides.json` — hand-maintained address → name (wins over OSM).
-- `web/index.html` — the app, plain HTML/JS, no build step. Loads `data/index.json`, then a district file. District in URL hash (`#7`) and localStorage.
-- `.github/workflows/build.yml` — runs the pipeline (manual with optional district list or `missing`, monthly cron), commits whatever was built even if the run fails, deploys `web/` to Pages. The pipeline saves `index.json` after every district, pauses between requests, and stops early if the city server stops answering for two districts in a row (it did once, mid-run, on 2026-10-18).
+- `web/index.html` — the app, plain HTML/JS, no build step. Loads `data/index.json` + `data/city.json` (all terraces + water, ~0.3 MB + water). Zoomed out (< 0.32 px/m) it shows only water, district names and terrace dots (coloured from already-computed sun data, else grey). Zoomed in, it loads the district files of the terraces in view (a terrace's own district file holds every building that can shade it), dedupes overlapping buildings, and computes sun for those terraces nearest-first. One global projection centred on 16.3725, 48.2083. `#7` jumps to a district; last view is kept in localStorage.
+- `web/data/city.json` — written by `write_city()` at the end of every pipeline run (and by `--city-only`): every terrace with its district, water areas (OSM natural=water / waterway=riverbank, multipolygons joined, simplified 1.5 m, < 300 m² dropped) and river/canal centre lines. Also adds `bbox`/`center` per district to `index.json`.
+- `.github/workflows/build.yml` — runs the pipeline (manual with optional district list, `missing`, or `city` for just the overview + water; monthly cron), commits whatever was built even if the run fails, deploys `web/` to Pages. The pipeline saves `index.json` after every district, pauses between requests, and stops early if the city server stops answering for two districts in a row (it did once, mid-run, on 2026-10-18).
 - `.github/workflows/probe.yml` — manual check whether data.wien.gv.at and Overpass answer from a GitHub runner; results appear as annotations. Pages on a private repo needs a paid plan; otherwise use Cloudflare Pages/Netlify with output dir `web`.
 - `tests/` — fixture generator + offline smoke test.
 - `prototype/` — notes on the original Spittelberg prototype (files kept in the Claude project).
@@ -76,3 +77,4 @@ Common params: `service=WFS&request=GetFeature&srsName=EPSG:4326&outputFormat=js
 - Precompute daily sun windows in the pipeline for reference dates if browser compute gets slow on phones.
 - Trees, awnings, terrace orientation/extent aren't modelled.
 - "Near me" / geolocation, favourites.
+- Unload district buildings that are far from the view (memory grows as you roam; ~10k buildings per district).
