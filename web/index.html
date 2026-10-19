@@ -520,10 +520,8 @@ function updateArea(){
 
 /* ---------- controls ---------- */
 function updateReadout(){
-  const s=sunPos(dateAt(minute),LAT0,LON0); const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-  const dir=dirs[Math.round(s.az/RAD/22.5)%16];
-  const names={N:'north',NNE:'north-north-east',NE:'north-east',ENE:'east-north-east',E:'east',ESE:'east-south-east',SE:'south-east',SSE:'south-south-east',S:'south',SSW:'south-south-west',SW:'south-west',WSW:'west-south-west',W:'west',WNW:'west-north-west',NW:'north-west',NNW:'north-north-west'};
-  $('readout').textContent = s.alt>0 ? `${(s.alt/RAD).toFixed(0)}° high in the ${names[dir]}` : `Below the horizon`;
+  const s=sunPos(dateAt(minute),LAT0,LON0); const dir=['north','north-east','east','south-east','south','south-west','west','north-west'][Math.round(s.az/RAD/45)%8];
+  $('readout').textContent = s.alt>0 ? `${(s.alt/RAD).toFixed(0)}° high in the ${dir}` : `Below the horizon`;
   const p=Math.max(0,Math.min(1,(minute-dayCache.rise)/((dayCache.set-dayCache.rise)||1))), th=Math.PI*(1-p), disc=$('egg');
   disc.setAttribute('transform',`translate(${(75+65*Math.cos(th)).toFixed(1)} ${(66-56*Math.sin(th)).toFixed(1)}) scale(1.45) rotate(${(p*40-20).toFixed(0)})`);
   disc.style.opacity = s.alt>0 ? 1 : .35;
