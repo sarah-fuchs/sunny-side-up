@@ -118,19 +118,41 @@ def main():
     ]})
 
     terr = build.load_terraces()
+    all_blocks, all_streets = [], []
     for d, (lon0, lat0, nx, ny) in {7: (16.3555, 48.2030, 4, 5), 2: (big_lon, big_lat, 21, 20)}.items():
         ts = terr[d]
         plon = sum(t["lon"] for t in ts) / len(ts)
         plat = sum(t["lat"] for t in ts) / len(ts)
         proj = build.Proj(plon, plat)
         bl = blocks(lon0, lat0, nx, ny)
+        all_blocks += bl
         for i, (w, s, e, n) in enumerate(build.cluster_boxes(ts, proj)):
             inbox = [f for f in bl if any(w <= c[0] <= e and s <= c[1] <= n
                      for poly in ([f["geometry"]["coordinates"]] if f["geometry"]["type"] == "Polygon" else f["geometry"]["coordinates"])
                      for c in poly[0])]
             for start in range(0, len(inbox) + 1, 1000):  # same paging as the pipeline
                 dump(f"wfs_bkm_{d:02d}_{i}_{start}.json", {"type": "FeatureCollection", "features": inbox[start:start + 1000]})
-        dump(f"osm_streets_{d:02d}.json", streets_for(lon0, lat0, nx, ny))
+        st = streets_for(lon0, lat0, nx, ny)
+        dump(f"osm_streets_{d:02d}.json", st)
+        all_streets += st["elements"]
+    # map tiles: the same buildings, cut by each tile's bbox the way the WFS does (any vertex inside)
+    def rings(f):
+        g = f["geometry"]
+        return [g["coordinates"][0]] if g["type"] == "Polygon" else [p[0] for p in g["coordinates"]]
+    n_tiles = 0
+    for ix, iy in build.tile_range():
+        w, s = build.CITY.ll(ix * build.TILE_M, iy * build.TILE_M)
+        e, n = build.CITY.ll((ix + 1) * build.TILE_M, (iy + 1) * build.TILE_M)
+        inbox = [f for f in all_blocks if any(w <= c[0] <= e and s <= c[1] <= n for r in rings(f) for c in r)]
+        if not inbox:
+            continue
+        n_tiles += 1
+        for start in range(0, len(inbox) + 1, 1000):
+            dump(os.path.basename(build._cache_name("wfs", f"tile_{ix}_{iy}".replace("-", "m") + f"_{start}")), {"type": "FeatureCollection", "features": inbox[start:start + 1000]})
+    for i, el in enumerate(all_streets):
+        el["id"] = 1000 + i
+    dump("osm_streets_all.json", {"elements": all_streets})
+    print(n_tiles, "tiles with buildings")
     # water: a river relation made of two open ways + an island, a closed-way pond, a river line
     pj = build.Proj(16.3555, 48.2030)
     def ll(x, y): return dict(zip(("lon", "lat"), pj.ll(x, y)))

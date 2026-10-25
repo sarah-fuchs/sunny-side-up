@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       districts:
-        description: "District numbers, space separated. Empty = all 23. 'missing' = only districts without data yet. 'city' = only the city overview and water."
+        description: "District numbers, space separated. Empty = all 23. 'missing' = only districts without data yet. 'city' = only the city overview and water. 'tiles' = map tiles with every building (carries on where it stopped), 'tiles-all' = all tiles again."
         required: false
         default: ""
   schedule:
@@ -41,6 +41,10 @@ jobs:
             python pipeline/build.py --missing
           elif [ "$DISTRICTS" = "city" ]; then
             python pipeline/build.py --city-only
+          elif [ "$DISTRICTS" = "tiles" ]; then
+            python pipeline/build.py --tiles
+          elif [ "$DISTRICTS" = "tiles-all" ]; then
+            python pipeline/build.py --tiles-all
           else
             python pipeline/build.py $DISTRICTS
           fi
@@ -51,7 +55,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add web/data
           if git diff --cached --quiet; then echo "No data changes"; exit 0; fi
-          git commit -m "Update district data"
+          git commit -m "Update map data"
           git pull --rebase origin main
           git push
 

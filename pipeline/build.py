@@ -14,6 +14,7 @@ Usage:
   python pipeline/build.py              # all 23 districts
   python pipeline/build.py 7 1 6        # selected districts
   python pipeline/build.py --fixtures DIR 7   # offline, read cached responses from DIR
+  python pipeline/build.py --tiles      # map tiles with every building in Vienna (carries on where it stopped)
 """
 import argparse, json, math, os, re, sys, time, unicodedata
 import urllib.error, urllib.parse, urllib.request
@@ -165,9 +166,8 @@ def dp(pts, tol):
     return dp(pts[: bi + 1], tol)[:-1] + dp(pts[bi:], tol)
 
 
-def simplify_ring(ring, proj, tol=SIMPLIFY_M):
-    """Simplify a closed ring; returns open ring of [lon, lat] (≥3 points) or None."""
-    pts = [proj.xy(lon, lat) for lon, lat in ring]
+def simplify_xy(pts, tol=SIMPLIFY_M):
+    """Simplify a ring of (x, y) metres (closed or open); returns an open ring (≥3 points) or None."""
     if len(pts) > 1 and pts[0] == pts[-1]:
         pts = pts[:-1]
     if len(pts) < 3:
@@ -177,7 +177,13 @@ def simplify_ring(ring, proj, tol=SIMPLIFY_M):
     a = dp(pts[: far + 1], tol)
     b = dp(pts[far:] + [pts[0]], tol)
     out = a[:-1] + b[:-1]
-    if len(out) < 3:
+    return out if len(out) >= 3 else None
+
+
+def simplify_ring(ring, proj, tol=SIMPLIFY_M):
+    """Simplify a closed ring; returns open ring of [lon, lat] (≥3 points) or None."""
+    out = simplify_xy([proj.xy(lon, lat) for lon, lat in ring], tol)
+    if not out:
         return None
     return [[round(v, 6) for v in proj.ll(x, y)] for x, y in out]
 
@@ -643,6 +649,191 @@ def write_city(fetch_water=True):
         f"{len(water['areas'])} water areas ({os.path.getsize(city_path) / 1e6:.2f} MB)")
 
 
+# ---------------------------------------------------------------- map tiles: every building in Vienna
+#
+# The map is cut into TILE_M squares in one projection centred on CITY_CENTER (the same one the
+# website and the app use). Each tile file holds every building whose footprint centre lies in it,
+# plus the named streets crossing it:
+#   {"x": ix, "y": iy, "b": [[roof_dm, ground_dm, x0, y0, dx1, dy1, ...], ...],
+#                      "s": [{"i": osm_id, "n": name, "l": [x0, y0, dx1, dy1, ...]}, ...]}
+# Coordinates are decimetres from the tile's south-west corner (ix*TILE_M, iy*TILE_M); after the
+# first point each pair is the step from the previous point. Rings run counter-clockwise.
+# data/tiles.json lists the tiles that have content ({"ix_iy": buildings}) and those that came back
+# empty, so a run that stopped half way can carry on with --tiles.
+
+TILE_M = 1000
+CITY = Proj(*CITY_CENTER)
+TILES_DIR = "tiles"
+
+
+def tile_range():
+    w, s, e, n = VIENNA_BBOX
+    x0, y0 = CITY.xy(w, s)
+    x1, y1 = CITY.xy(e, n)
+    return [(ix, iy) for iy in range(math.floor(y0 / TILE_M), math.floor(y1 / TILE_M) + 1)
+            for ix in range(math.floor(x0 / TILE_M), math.floor(x1 / TILE_M) + 1)]
+
+
+def encode_line(pts, ox, oy):
+    """[(x, y) metres] → [x0, y0, dx1, dy1, …] in decimetres from (ox, oy); repeated points dropped."""
+    out, px, py = [], None, None
+    for x, y in pts:
+        X, Y = round((x - ox) * 10), round((y - oy) * 10)
+        if px is None:
+            out += [X, Y]
+        elif X != px or Y != py:
+            out += [X - px, Y - py]
+        else:
+            continue
+        px, py = X, Y
+    return out
+
+
+def decode_line(enc, ox, oy):
+    pts, x, y = [], 0, 0
+    for i in range(0, len(enc), 2):
+        x, y = (enc[0], enc[1]) if i == 0 else (x + enc[i], y + enc[i + 1])
+        pts.append((ox + x / 10, oy + y / 10))
+    return pts
+
+
+def fetch_tile_buildings(ix, iy):
+    x0, y0 = ix * TILE_M, iy * TILE_M
+    w, s = CITY.ll(x0, y0)
+    e, n = CITY.ll(x0 + TILE_M, y0 + TILE_M)
+    bbox = f"{s:.6f},{w:.6f},{n:.6f},{e:.6f},urn:ogc:def:crs:EPSG::4326"
+    try:
+        feats = wfs("ogdwien:FMZKBKMOGD", {"bbox": bbox, "sortBy": "FMZK_ID"}, page=1000, key=f"tile_{ix}_{iy}".replace("-", "m"))
+    except FileNotFoundError:
+        if FIXTURES:
+            return []  # offline test: no fixture means an empty tile
+        raise
+    out, seen = [], set()
+    for f in feats:
+        p = f.get("properties", {})
+        fid = p.get("FMZK_ID") or f.get("id")
+        if fid is not None:
+            if fid in seen:
+                continue
+            seen.add(fid)
+        o, t = p.get("O_KOTE"), p.get("T_KOTE")
+        if o is None or t is None:
+            continue
+        o, t = float(o), float(t)
+        if o - t < MIN_HEIGHT:
+            continue
+        for ring in outer_rings(f.get("geometry")):
+            pts = [CITY.xy(lo, la) for lo, la in ring]
+            xs, ys = [q[0] for q in pts], [q[1] for q in pts]
+            # each part belongs to the one tile that holds the centre of its bounding box
+            if math.floor((min(xs) + max(xs)) / 2 / TILE_M) != ix or math.floor((min(ys) + max(ys)) / 2 / TILE_M) != iy:
+                continue
+            r = simplify_xy(pts)
+            if not r:
+                continue
+            if _ring_area(r) < 0:
+                r = r[::-1]
+            enc = encode_line(r, x0, y0)
+            if len(enc) >= 6:
+                out.append([round(o * 10), round(t * 10)] + enc)
+    return out
+
+
+def load_city_streets():
+    """Every named street in Vienna, as (osm_id, name, [(x, y)], bbox) in the city projection."""
+    log("Fetching streets for the whole city …")
+    q = """[out:json][timeout:600];
+area["name"="Wien"]["admin_level"="4"]->.a;
+way["highway"~"^(primary|secondary|tertiary|unclassified|residential|living_street|pedestrian)$"]["name"](area.a);
+out geom;"""
+    j = overpass(q, "streets_all")
+    out = []
+    for n, el in enumerate(j.get("elements", [])):
+        g = el.get("geometry") or []
+        if len(g) < 2 or not el.get("tags", {}).get("name"):
+            continue
+        pts = dp([CITY.xy(p["lon"], p["lat"]) for p in g], 1.0)
+        xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+        out.append((el.get("id", n), el["tags"]["name"], pts, (min(xs), min(ys), max(xs), max(ys))))
+    log(f"  {len(out)} named streets")
+    return out
+
+
+def build_tiles(redo=False, max_minutes=280):
+    """Fetch every building in Vienna tile by tile. Returns (done, failed)."""
+    tiles_dir = os.path.join(OUT, TILES_DIR)
+    os.makedirs(tiles_dir, exist_ok=True)
+    idx_path = os.path.join(OUT, "tiles.json")
+    try:
+        with open(idx_path, encoding="utf-8") as f:
+            idx = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        idx = {}
+    if redo or idx.get("size") != TILE_M:
+        idx = {}
+    tiles, empty = dict(idx.get("tiles", {})), set(idx.get("empty", []))
+
+    def save():
+        with open(idx_path, "w", encoding="utf-8") as f:
+            json.dump({"size": TILE_M, "center": list(CITY_CENTER), "updated": time.strftime("%Y-%m-%d"),
+                       "tiles": dict(sorted(tiles.items())), "empty": sorted(empty)}, f, separators=(",", ":"))
+
+    todo = [(ix, iy) for ix, iy in tile_range() if f"{ix}_{iy}" not in tiles and f"{ix}_{iy}" not in empty]
+    log(f"Tiles: {len(todo)} to fetch ({len(tiles)} done, {len(empty)} empty)")
+    if not todo:
+        save()
+        return [], []
+    streets = load_city_streets()
+    sgrid = defaultdict(list)
+    for s in streets:
+        x0, y0, x1, y1 = s[3]
+        for ix in range(math.floor(x0 / TILE_M), math.floor(x1 / TILE_M) + 1):
+            for iy in range(math.floor(y0 / TILE_M), math.floor(y1 / TILE_M) + 1):
+                sgrid[(ix, iy)].append(s)
+
+    t_start, done, failed, unreachable = time.time(), [], [], 0
+    for n, (ix, iy) in enumerate(todo):
+        if time.time() - t_start > max_minutes * 60:
+            annotate("warning", "Tiles: time is up", f"Stopped after {len(done)} tiles; {len(todo) - n} left. Run again with 'tiles' to carry on.")
+            failed += [f"{a}_{b}" for a, b in todo[n:]]
+            break
+        key = f"{ix}_{iy}"
+        try:
+            b = fetch_tile_buildings(ix, iy)
+            unreachable = 0
+        except Exception as e:  # noqa: BLE001
+            log(f"Tile {key} FAILED: {e}")
+            failed.append(key)
+            unreachable = unreachable + 1 if isinstance(e, ServerUnreachable) else 0
+            if unreachable >= 3:
+                annotate("error", "City server stopped answering",
+                         f"Stopped after {len(done)} tiles. Run the workflow again later with 'tiles'.")
+                failed += [f"{a}_{c}" for a, c in todo[n + 1:]]
+                break
+            continue
+        ox, oy = ix * TILE_M, iy * TILE_M
+        s = [{"i": sid, "n": name, "l": encode_line(pts, ox, oy)} for sid, name, pts, _ in sgrid.get((ix, iy), [])]
+        path = os.path.join(tiles_dir, f"{key}.json")
+        if b:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"x": ix, "y": iy, "b": b, "s": s}, f, ensure_ascii=False, separators=(",", ":"))
+            tiles[key] = len(b)
+            empty.discard(key)
+        else:
+            if os.path.exists(path):
+                os.remove(path)
+            empty.add(key)
+            tiles.pop(key, None)
+        done.append(key)
+        if b:
+            log(f"Tile {key}: {len(b)} buildings, {len(s)} streets ({os.path.getsize(path) / 1e3:.0f} kB) [{n + 1}/{len(todo)}]")
+        save()
+    save()
+    total = sum(tiles.values())
+    annotate("notice", "Tiles", f"Fetched {len(done)} tiles this run; {len(tiles)} tiles with {total} buildings in all; {len(failed)} not done.")
+    return done, failed
+
+
 def main():
     global FIXTURES, OUT
     ap = argparse.ArgumentParser()
@@ -650,6 +841,9 @@ def main():
     ap.add_argument("--missing", action="store_true", help="only districts that have no data file yet")
     ap.add_argument("--city-only", action="store_true", help="only rebuild city.json (all terraces + water) from existing district files")
     ap.add_argument("--no-water", action="store_true", help="don't fetch water; keep what city.json has")
+    ap.add_argument("--tiles", action="store_true", help="fetch the map tiles (every building) that aren't done yet")
+    ap.add_argument("--tiles-all", action="store_true", help="fetch all map tiles again")
+    ap.add_argument("--max-minutes", type=int, default=280, help="stop fetching tiles after this long (default 280)")
     ap.add_argument("--fixtures", help="read cached responses from this folder (offline tests)")
     ap.add_argument("--out", default=OUT, help="output data folder (default web/data)")
     a = ap.parse_args()
@@ -657,6 +851,12 @@ def main():
     OUT = a.out
     wanted = a.districts or sorted(DISTRICTS)
     os.makedirs(os.path.join(OUT, "districts"), exist_ok=True)
+    if a.tiles or a.tiles_all:
+        done, failed = build_tiles(redo=a.tiles_all, max_minutes=a.max_minutes)
+        log(f"tiles done: {len(done)}; not done: {len(failed)}")
+        if failed and not done:
+            sys.exit(1)
+        return
     if a.city_only:
         write_city(fetch_water=not a.no_water)
         return
