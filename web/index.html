@@ -165,22 +165,23 @@ footer{font-size:.78rem;color:var(--muted);line-height:1.5;max-width:68ch;paddin
 </div>
 
 <script>
-/* ---------- one map for all of Vienna: overview from city.json, buildings loaded per district as you zoom in ---------- */
+/* ---------- one map for all of Vienna: overview from city.json, buildings loaded in 1 km tiles as you zoom in ---------- */
 const DATA = 'data/';
-const EYE = 1.2, CELL = 25, MAXREACH = 600, LIST_STEP = 40;
+const EYE = 1.2, CELL = 25, MAXREACH = 400, LIST_STEP = 40, MAX_TILES = 48;
 const NEAR = 0.32;            // px per metre: from here on buildings, shade and sun are shown
 const LON0 = 16.3725, LAT0 = 48.2083, KX = Math.cos(LAT0*Math.PI/180)*111320, KY = 110540;
 const toXY = (lon,lat) => [(lon-LON0)*KX, (lat-LAT0)*KY];
 const ck = (cx,cy) => (cx+50000)*100000 + (cy+50000);
-let B = [], GRID = new Map(), MAXROOF = 0, seenB = new Int32Array(0), stamp = 0;
-const BKEYS = new Set();
+let GRID = new Map(), MAXROOF = 0, stamp = 0;   // GRID: 25 m cell -> buildings touching it
 let TERRACES = [], BYID = new Map(), STREETS = [], WATER = [], RIVERS = [], DISTRICTS = [];
-const CHUNKS = new Map();     // district -> 'loading' | 'ready'
+let TILEIDX = null;           // data/tiles.json: {size, tiles: {"ix_iy": buildings}}
+const TILES = new Map();      // "ix_iy" -> {state:'loading'|'ready', b:[buildings], x0,y0,x1,y1}
+const STREET_IDS = new Set();
 
 /* ---------- geometry ---------- */
 function inside(px,py,pts){ let c=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const [xi,yi]=pts[i],[xj,yj]=pts[j];
   if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) c=!c; } return c; }
-function insideAny(x,y){ const l=GRID.get(ck(Math.floor(x/CELL),Math.floor(y/CELL))); if(!l) return null; for(const i of l){ const b=B[i]; if(x<b.x0||x>b.x1||y<b.y0||y>b.y1) continue; if(inside(x,y,b.pts)) return b; } return null; }
+function insideAny(x,y){ const l=GRID.get(ck(Math.floor(x/CELL),Math.floor(y/CELL))); if(!l) return null; for(const b of l){ if(x<b.x0||x>b.x1||y<b.y0||y>b.y1) continue; if(inside(x,y,b.pts)) return b; } return null; }
 function nearestEdge(x,y,pts){ let best=null,bd=1e9; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const [ax,ay]=pts[j],[bx,by]=pts[i];
   const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy||1; let t=((x-ax)*dx+(y-ay)*dy)/L; t=Math.max(0,Math.min(1,t)); const qx=ax+t*dx,qy=ay+t*dy,d=Math.hypot(x-qx,y-qy);
   if(d<bd){bd=d;best=[qx,qy];} } return best; }
@@ -188,7 +189,7 @@ function groundAt(x,y){
   const cx=Math.floor(x/CELL), cy=Math.floor(y/CELL); let best=null,bd=1e9;
   for(let r=0;r<=6 && !best;r++) for(let i=-r;i<=r;i++) for(let j=-r;j<=r;j++){ if(Math.max(Math.abs(i),Math.abs(j))!==r) continue;
     const l=GRID.get(ck(cx+i,cy+j)); if(!l) continue;
-    for(const k of l){ const b=B[k]; const d=Math.hypot(Math.max(b.x0-x,0,x-b.x1),Math.max(b.y0-y,0,y-b.y1)); if(d<bd){bd=d;best=b;} } }
+    for(const b of l){ const d=Math.hypot(Math.max(b.x0-x,0,x-b.x1),Math.max(b.y0-y,0,y-b.y1)); if(d<bd){bd=d;best=b;} } }
   return best?best.base:38;
 }
 function bboxOf(pts){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const [x,y] of pts){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; } return {x0,y0,x1,y1}; }
@@ -209,24 +210,46 @@ function prepTerrace(t){
   t.samples = [[0,0],[r,0],[-r,0],[0,r],[0,-r]].map(([dx,dy])=>[x+dx,y+dy]).filter(([sx,sy],i)=> i===0 || !insideAny(sx,sy));
   t.ready = true;
 }
-function addChunk(d, data){
-  for(const b of data.buildings){
-    const key=b.o+':'+b.r[0][0]+','+b.r[0][1]; if(BKEYS.has(key)) continue; BKEYS.add(key);   // neighbouring districts overlap at the edges
-    const pts = b.r.map(([lo,la]) => toXY(lo,la));
-    let a2=0; for(let i=0,j=pts.length-1;i<pts.length;j=i++) a2+=pts[j][0]*pts[i][1]-pts[i][0]*pts[j][1];
-    if (a2<0) pts.reverse();
-    const bb=bboxOf(pts), idx=B.length;
-    for(let cx=Math.floor(bb.x0/CELL);cx<=Math.floor(bb.x1/CELL);cx++) for(let cy=Math.floor(bb.y0/CELL);cy<=Math.floor(bb.y1/CELL);cy++){
-      const k=ck(cx,cy); let l=GRID.get(k); if(!l){ l=[]; GRID.set(k,l); } l.push(idx); }
-    if (b.o>MAXROOF) MAXROOF=b.o;
-    B.push({pts, roof:b.o, base:b.t, h:b.o-b.t, ...bb});
+/* ---------- map tiles: every building, 1 km squares (see pipeline/build.py) ---------- */
+function gridCells(b,fn){ for(let cx=Math.floor(b.x0/CELL);cx<=Math.floor(b.x1/CELL);cx++) for(let cy=Math.floor(b.y0/CELL);cy<=Math.floor(b.y1/CELL);cy++) fn(ck(cx,cy)); }
+function addTile(T, data){
+  const size=TILEIDX.size, ox=data.x*size, oy=data.y*size, list=[];
+  const box={x0:ox,y0:oy,x1:ox+size,y1:oy+size};
+  for(const a of data.b){
+    const pts=[]; let x=a[2], y=a[3]; pts.push([ox+x/10, oy+y/10]);
+    for(let i=4;i<a.length;i+=2){ x+=a[i]; y+=a[i+1]; pts.push([ox+x/10, oy+y/10]); }
+    const roof=a[0]/10, base=a[1]/10, bb=bboxOf(pts), b={pts, roof, base, h:roof-base, seen:0, ...bb};
+    gridCells(b, k=>{ let l=GRID.get(k); if(!l){ l=[]; GRID.set(k,l); } l.push(b); });
+    if(roof>MAXROOF) MAXROOF=roof;
+    if(bb.x0<box.x0) box.x0=bb.x0; if(bb.y0<box.y0) box.y0=bb.y0; if(bb.x1>box.x1) box.x1=bb.x1; if(bb.y1>box.y1) box.y1=bb.y1;
+    list.push(b);
   }
-  if (seenB.length<B.length){ const n=new Int32Array(B.length+4096); n.set(seenB); seenB=n; }
-  for(const s of data.streets||[]){ const pts=s.l.map(([lo,la])=>toXY(lo,la)); STREETS.push({n:s.n, pts, ...bboxOf(pts)}); }
-  const mine = TERRACES.filter(t=>t.d===d);
-  for(const t of mine) prepTerrace(t);
-  return mine;
+  for(const st of data.s||[]){ if(STREET_IDS.has(st.i)) continue; STREET_IDS.add(st.i);
+    const pts=[]; let x=st.l[0], y=st.l[1]; pts.push([ox+x/10, oy+y/10]);
+    for(let i=2;i<st.l.length;i+=2){ x+=st.l[i]; y+=st.l[i+1]; pts.push([ox+x/10, oy+y/10]); }
+    STREETS.push({n:st.n, pts, ...bboxOf(pts)}); }
+  Object.assign(T, box, {b:list, state:'ready'});
 }
+function removeTile(k){
+  const T=TILES.get(k); TILES.delete(k); if(!T||T.state!=='ready') return;
+  const gone=new Set(T.b);
+  for(const b of T.b) gridCells(b, c=>{ const l=GRID.get(c); if(!l) return; const n=l.filter(x=>!gone.has(x)); n.length?GRID.set(c,n):GRID.delete(c); });
+  // terraces that relied on this tile get prepared again when it comes back (their day rows stay valid)
+  for(const t of TERRACES) if(t.ready && t.x>T.x0-MAXREACH && t.x<T.x1+MAXREACH && t.y>T.y0-MAXREACH && t.y<T.y1+MAXREACH) t.ready=false;
+}
+const tileState = k => !(k in TILEIDX.tiles) ? 'ready' : (TILES.get(k)||{}).state;   // no file = no buildings there
+function tilesReadyAround(x,y){ const T=TILEIDX.size;
+  for(let ix=Math.floor((x-MAXREACH)/T);ix<=Math.floor((x+MAXREACH)/T);ix++) for(let iy=Math.floor((y-MAXREACH)/T);iy<=Math.floor((y+MAXREACH)/T);iy++)
+    if(tileState(ix+'_'+iy)!=='ready') return false;
+  return true; }
+function prepReady(){   // terraces near the view whose surroundings are all loaded
+  const v=viewRect(MAXREACH), fresh=[];
+  for(const t of TERRACES){ if(t.ready) continue; const [x,y]=toXY(t.lon,t.lat);
+    if(x<v.x0||x>v.x1||y<v.y0||y>v.y1||!tilesReadyAround(x,y)) continue;
+    prepTerrace(t); fresh.push(t); }
+  if(dayCache) enqueue(fresh.filter(t=>!dayCache.fr.has(t.gid)));
+}
+function tilesIn(v){ const out=[]; for(const T of TILES.values()) if(T.state==='ready' && meets(T,v)) out.push(T); return out; }
 
 /* ---------- sun position (after SunCalc, V. Agafonkin) ---------- */
 const RAD=Math.PI/180, E=RAD*23.4397;
@@ -264,7 +287,7 @@ function litPoint(px,py,g,sun){
   const dx=Math.sin(sun.az), dy=Math.cos(sun.az), tanA=Math.tan(sun.alt), eye=g+EYE;
   const maxT = Math.min(MAXREACH, (MAXROOF-eye)/tanA);
   if (maxT <= 0) return true;
-  if (++stamp > 2e9){ stamp=1; seenB.fill(0); }
+  if (++stamp > 2e9){ stamp=1; for(const T of TILES.values()) for(const b of T.b||[]) b.seen=0; }
   let cx=Math.floor(px/CELL), cy=Math.floor(py/CELL);
   const sX=dx>0?1:-1, sY=dy>0?1:-1;
   const tdX = dx!==0 ? CELL/Math.abs(dx) : Infinity, tdY = dy!==0 ? CELL/Math.abs(dy) : Infinity;
@@ -273,7 +296,7 @@ function litPoint(px,py,g,sun){
   let t=0;
   while (t <= maxT){
     const l = GRID.get(ck(cx,cy));
-    if (l) for (const i of l){ if (seenB[i]===stamp) continue; seenB[i]=stamp; if (blocks(B[i],px,py,dx,dy,tanA,eye)) return false; }
+    if (l) for (const b of l){ if (b.seen===stamp) continue; b.seen=stamp; if (blocks(b,px,py,dx,dy,tanA,eye)) return false; }
     if (tX < tY){ t=tX; tX+=tdX; cx+=sX; } else { t=tY; tY+=tdY; cy+=sY; }
   }
   return true;
@@ -379,7 +402,7 @@ function draw(){
     if (sun.alt>0.005){
       const dx=-Math.sin(sun.az), dy=-Math.cos(sun.az), tanA=Math.tan(sun.alt);
       octx.fillStyle=colors.shade;
-      for(const b of B){ const L=Math.min(500,b.h/tanA), ox=dx*L, oy=dy*L;
+      for(const T of tilesIn(viewRect(MAXREACH))) for(const b of T.b){ const L=Math.min(MAXREACH,b.h/tanA), ox=dx*L, oy=dy*L;
         if(Math.max(b.x1,b.x1+ox)<v.x0||Math.min(b.x0,b.x0+ox)>v.x1||Math.max(b.y1,b.y1+oy)<v.y0||Math.min(b.y0,b.y0+oy)>v.y1) continue;
         const p=b.pts; octx.beginPath(); addRing(octx,p,ox,oy);
         for(let i=0,j=p.length-1;i<p.length;j=i++){ const ax=p[j][0],ay=p[j][1],bx=p[i][0],by=p[i][1];
@@ -392,7 +415,7 @@ function draw(){
   }
   drawWater(v);
   if (near){
-    for(const b of B){ if(!meets(b,v)) continue; ctx.beginPath(); addRing(ctx,b.pts,0,0); ctx.fillStyle = b.h>18?colors['building-tall']:colors['building']; ctx.fill(); if(view.s>1.6){ ctx.lineWidth=.8; ctx.strokeStyle=colors.ink; ctx.globalAlpha=.22; ctx.stroke(); ctx.globalAlpha=1; } }
+    for(const T of tilesIn(v)) for(const b of T.b){ if(!meets(b,v)) continue; ctx.beginPath(); addRing(ctx,b.pts,0,0); ctx.fillStyle = b.h>18?colors['building-tall']:colors['building']; ctx.fill(); if(view.s>1.6){ ctx.lineWidth=.8; ctx.strokeStyle=colors.ink; ctx.globalAlpha=.22; ctx.stroke(); ctx.globalAlpha=1; } }
     drawStreetLabels(v);
   }
   // terraces
@@ -424,31 +447,36 @@ function draw(){
   document.querySelector('.compass').style.opacity = rot===null?.4:1;
 }
 
-/* ---------- loading buildings for the area in view ---------- */
-function ensureChunks(){
-  if(view.s<NEAR*0.8) return;
-  const v=viewRect(200), need=new Set();   // a terrace's own district file holds every building that can shade it
-  for(const t of TERRACES) if(!CHUNKS.has(t.d) && t.x>=v.x0&&t.x<=v.x1&&t.y>=v.y0&&t.y<=v.y1) need.add(t.d);
-  for(const d of need) loadChunk(d);
-  updateTag();
+/* ---------- loading the tiles around the view ---------- */
+const tilesLoading = () => [...TILES.values()].some(T=>T.state==='loading');
+function ensureTiles(){
+  if(!TILEIDX || view.s<NEAR*0.8) return;
+  const v=viewRect(MAXREACH), size=TILEIDX.size;
+  for(let ix=Math.floor(v.x0/size);ix<=Math.floor(v.x1/size);ix++) for(let iy=Math.floor(v.y0/size);iy<=Math.floor(v.y1/size);iy++){
+    const k=ix+'_'+iy; if((k in TILEIDX.tiles) && !TILES.has(k)) loadTile(k); }
+  if(TILES.size>MAX_TILES){   // forget the tiles furthest away
+    const far=[...TILES.entries()].filter(([,T])=>T.state==='ready'&&!meets(T,v))
+      .sort((a,b)=>Math.hypot((b[1].x0+b[1].x1)/2-view.cx,(b[1].y0+b[1].y1)/2-view.cy)-Math.hypot((a[1].x0+a[1].x1)/2-view.cx,(a[1].y0+a[1].y1)/2-view.cy));
+    for(const [k] of far.slice(0,TILES.size-MAX_TILES)) removeTile(k);
+  }
+  prepReady(); updateTag();
 }
-async function loadChunk(d){
-  CHUNKS.set(d,'loading'); updateTag();
+async function loadTile(k){
+  const T={state:'loading'}; TILES.set(k,T); updateTag();
   try{
-    const r=await fetch(`${DATA}districts/${pad(d)}.json`); if(!r.ok) throw new Error(r.status);
-    const mine=addChunk(d, await r.json()); CHUNKS.set(d,'ready');
-    if(dayCache) enqueue(mine);
-  }catch(e){ CHUNKS.delete(d); showNotice("Couldn't load this area. Check your connection and move the map to try again."); }
+    const r=await fetch(`${DATA}tiles/${k}.json`); if(!r.ok) throw new Error(r.status);
+    const data=await r.json(); if(TILES.get(k)!==T) return;
+    addTile(T,data); prepReady();
+  }catch(e){ if(TILES.get(k)===T) TILES.delete(k); showNotice("Couldn't load this area. Check your connection and move the map to try again."); }
   updateTag(); draw(); renderList();
 }
 function updateTag(){
-  const loading=[...CHUNKS.values()].includes('loading');
-  $('maptag').textContent = loading ? 'Loading buildings …' : view.s<NEAR ? 'Zoom in to see sun and shade' : 'Drag to move, pinch to zoom';
+  $('maptag').textContent = tilesLoading() ? 'Loading buildings …' : view.s<NEAR ? 'Zoom in to see sun and shade' : 'Drag to move, pinch to zoom';
 }
 
 /* ---------- pan & zoom ---------- */
 const ptrs=new Map(); let last=null, moved=false, vcTimer=null;
-function viewChanged(){ clearTimeout(vcTimer); vcTimer=setTimeout(()=>{ ensureChunks(); updateArea(); listLimit=LIST_STEP; renderList(); saveView();
+function viewChanged(){ clearTimeout(vcTimer); vcTimer=setTimeout(()=>{ ensureTiles(); updateArea(); listLimit=LIST_STEP; renderList(); saveView();
   if(queue.length) queue.sort((a,b)=>distToView(a)-distToView(b)); updateTag(); },180); }
 cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,[e.offsetX,e.offsetY]); moved=false; last=null; });
 cv.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)) return; const prev=ptrs.get(e.pointerId); ptrs.set(e.pointerId,[e.offsetX,e.offsetY]);
@@ -489,7 +517,7 @@ function renderList(){
   }
   const rows=listOrder();
   if(!rows.length){
-    const loading=[...CHUNKS.values()].includes('loading');
+    const loading=tilesLoading();
     list.innerHTML=`<div class="listwrap"><div class="listhead"><b>${loading?'Loading …':'No terraces here'}</b></div>${loading?'':'<p class="hint">Move the map to a street with cafés, or jump to a district.</p>'}</div>`;
     return;
   }
@@ -567,9 +595,9 @@ async function init(){
   readColors();
   let index, city;
   try{
-    const [r1,r2]=await Promise.all([fetch(`${DATA}index.json`),fetch(`${DATA}city.json`)]);
-    if(!r1.ok||!r2.ok) throw new Error('missing');
-    [index, city]=await Promise.all([r1.json(), r2.json()]);
+    const [r1,r2,r3]=await Promise.all([fetch(`${DATA}index.json`),fetch(`${DATA}city.json`),fetch(`${DATA}tiles.json`)]);
+    if(!r1.ok||!r2.ok||!r3.ok) throw new Error('missing');
+    [index, city, TILEIDX]=await Promise.all([r1.json(), r2.json(), r3.json()]);
   }catch(e){ showNotice("Couldn't load the map data. The data may not be built yet.",0); return; }
   DISTRICTS = index.districts.map(d=>{ const o={...d};
     if(d.bbox){ const [a,b]=toXY(d.bbox[0],d.bbox[1]), [c,e]=toXY(d.bbox[2],d.bbox[3]); o.bb={x0:a,y0:b,x1:c,y1:e}; o.c=[(a+c)/2,(b+e)/2]; }

@@ -28,11 +28,12 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 
 ## Layout
 
-- `pipeline/build.py` — stdlib-only Python. Fetches terraces, buildings, OSM names and streets; writes `web/data/districts/<NN>.json` and `web/data/index.json`. `--fixtures DIR` reads cached responses instead of the network.
+- `pipeline/build.py` — stdlib-only Python. Fetches terraces, buildings, OSM names and streets; writes `web/data/districts/<NN>.json` and `web/data/index.json`. `--tiles` writes the map tiles (below). `--fixtures DIR` reads cached responses instead of the network.
 - `pipeline/overrides.json` — hand-maintained address → name (wins over OSM).
-- `web/index.html` — the app, plain HTML/JS, no build step. Loads `data/index.json` + `data/city.json` (all terraces + water, ~0.3 MB + water). Zoomed out (< 0.32 px/m) it shows only water, district names and terrace dots (coloured from already-computed sun data, else grey). Zoomed in, it loads the district files of the terraces in view (a terrace's own district file holds every building that can shade it), dedupes overlapping buildings, and computes sun for those terraces nearest-first. One global projection centred on 16.3725, 48.2083. `#7` jumps to a district; last view is kept in localStorage.
+- `web/index.html` — the app, plain HTML/JS, no build step. Loads `data/index.json` + `data/city.json` (all terraces + water, ~0.3 MB + water). Zoomed out (< 0.32 px/m) it shows only water, district names and terrace dots (coloured from already-computed sun data, else grey). Zoomed in, it loads the map tiles within 400 m of the view (keeps at most 48, dropping the furthest), and computes sun nearest-first for terraces whose tiles within 400 m are all loaded. It no longer reads the district files (the Flutter app doesn't either). One global projection centred on 16.3725, 48.2083. `#7` jumps to a district; last view is kept in localStorage.
+- `web/data/tiles/<ix>_<iy>.json` + `web/data/tiles.json` — **every building in Vienna** (decided 2026-10-25: buildings only near terraces left big empty "sunny" gaps), in 1 km squares of the global projection, written by `--tiles` (carries on where a stopped run left off; `--tiles-all` redoes all). A building part belongs to the tile holding the centre of its bounding box. Format: `{"x":ix,"y":iy,"b":[[roof_dm,ground_dm,x0,y0,dx1,dy1,…]],"s":[{"i":osm_id,"n":name,"l":[x0,y0,dx1,dy1,…]}]}`: decimetres from the tile's south-west corner, later points as steps, rings counter-clockwise. `tiles.json`: `{"size":1000,"tiles":{"ix_iy":buildings},"empty":[…]}`. Streets come from one Overpass query for the whole city. Not part of the monthly cron (buildings rarely change); run the workflow with `tiles-all` now and then.
 - `web/data/city.json` — written by `write_city()` at the end of every pipeline run (and by `--city-only`): every terrace with its district, water areas (OSM natural=water / waterway=riverbank, multipolygons joined, simplified 1.5 m, < 300 m² dropped) and river/canal centre lines. Also adds `bbox`/`center` per district to `index.json`.
-- `.github/workflows/build.yml` — runs the pipeline (manual with optional district list, `missing`, or `city` for just the overview + water; monthly cron), commits whatever was built even if the run fails, deploys `web/` to Pages. The pipeline saves `index.json` after every district, pauses between requests, and stops early if the city server stops answering for two districts in a row (it did once, mid-run, on 2026-10-18).
+- `.github/workflows/build.yml` — runs the pipeline (manual with optional district list, `missing`, `city` for just the overview + water, `tiles` / `tiles-all` for the map tiles; monthly cron), commits whatever was built even if the run fails, deploys `web/` to Pages. The pipeline saves `index.json` after every district, pauses between requests, and stops early if the city server stops answering for two districts in a row (it did once, mid-run, on 2026-10-18).
 - `.github/workflows/probe.yml` — manual check whether data.wien.gv.at and Overpass answer from a GitHub runner; results appear as annotations. Pages on a private repo needs a paid plan; otherwise use Cloudflare Pages/Netlify with output dir `web`.
 - `tests/` — fixture generator + offline smoke test.
 - `prototype/` — notes on the original Spittelberg prototype (files kept in the Claude project).
@@ -62,7 +63,7 @@ Common params: `service=WFS&request=GetFeature&srsName=EPSG:4326&outputFormat=js
 
 ### OpenStreetMap (Overpass)
 - Venues: `amenity` cafe|restaurant|bar|pub|biergarten|ice_cream|fast_food with `name`, inside `area[name=Wien][admin_level=4]`. Match on normalized street + number, then base number ("18A" ↔ "18"). Several at one address → prefer `outdoor_seating=yes`, else join with " / ". Fallback: the single named venue within 12 m.
-- Streets: named `highway` ways in each district's terrace bbox + 150 m.
+- Streets: named `highway` ways in each district's terrace bbox + 150 m (district files); for tiles, all named streets in Vienna in one query.
 
 ## Sun & shadow model (browser)
 
@@ -70,7 +71,7 @@ Common params: `service=WFS&request=GetFeature&srsName=EPSG:4326&outputFormat=js
 - SunCalc formulas inlined; azimuth from north, clockwise.
 - Terrace point inside a footprint → moved to nearest edge + 1.8 m outward. Ground = `T_KOTE` of nearest building; eye height 1.2 m.
 - Samples: centre + 4 points at radius `min(4, max(1.5, √area/2))` m, minus those inside buildings. Sunny if ≥ 50 % lit.
-- Shadow test: uniform 25 m grid of buildings; walk cells along the ray toward the sun (max 600 m), test edges of each building once. Day timeline in 10-min steps, computed in time slices so big districts stay responsive.
+- Shadow test: uniform 25 m grid of buildings; walk cells along the ray toward the sun (max 400 m, same as the tile radius; drawn shadows are capped at 400 m too), test edges of each building once. Day timeline in 10-min steps, computed in time slices so big districts stay responsive.
 - Sun windows < 20 min starting within 30 min of sunset are dropped as artefacts.
 - Map draws only buildings/shadows/terraces in view; list shows 40 rows, then "Show all".
 
@@ -79,4 +80,4 @@ Common params: `service=WFS&request=GetFeature&srsName=EPSG:4326&outputFormat=js
 - Precompute daily sun windows in the pipeline for reference dates if browser compute gets slow on phones.
 - Trees, awnings, terrace orientation/extent aren't modelled.
 - "Near me" / geolocation, favourites.
-- Unload district buildings that are far from the view (memory grows as you roam; ~10k buildings per district).
+- District files still carry their buildings (within 150 m of terraces); nothing reads them any more, so they could be slimmed down to terraces + streets.
