@@ -791,7 +791,7 @@ def build_tiles(redo=False, max_minutes=280):
             for iy in range(math.floor(y0 / TILE_M), math.floor(y1 / TILE_M) + 1):
                 sgrid[(ix, iy)].append(s)
 
-    t_start, done, failed, unreachable = time.time(), [], [], 0
+    t_start, done, failed, unreachable, first_logged = time.time(), [], [], 0, False
     for n, (ix, iy) in enumerate(todo):
         if time.time() - t_start > max_minutes * 60:
             annotate("warning", "Tiles: time is up", f"Stopped after {len(done)} tiles; {len(todo) - n} left. Run again with 'tiles' to carry on.")
@@ -804,10 +804,10 @@ def build_tiles(redo=False, max_minutes=280):
         except Exception as e:  # noqa: BLE001
             log(f"Tile {key} FAILED: {e}")
             failed.append(key)
-            unreachable = unreachable + 1 if isinstance(e, ServerUnreachable) else 0
-            if unreachable >= 3:
-                annotate("error", "City server stopped answering",
-                         f"Stopped after {len(done)} tiles. Run the workflow again later with 'tiles'.")
+            unreachable += 1  # failures in a row, of any kind
+            if unreachable >= 5:
+                annotate("error", "Tiles stopped: 5 failures in a row",
+                         f"Stopped after {len(done)} tiles. Last error: {str(e)[:500]}. Run the workflow again later with 'tiles'.")
                 failed += [f"{a}_{c}" for a, c in todo[n + 1:]]
                 break
             continue
@@ -825,6 +825,11 @@ def build_tiles(redo=False, max_minutes=280):
             empty.add(key)
             tiles.pop(key, None)
         done.append(key)
+        if b and not first_logged:
+            first_logged = True
+            annotate("notice", "Tiles: first tile", f"Tile {key}: {len(b)} buildings, {len(s)} streets, {os.path.getsize(path) / 1e3:.0f} kB")
+        if len(done) % 100 == 0:
+            annotate("notice", f"Tiles: {len(done)} of {len(todo)}", f"{len(tiles)} tiles with {sum(tiles.values())} buildings so far, {time.time() - t_start:.0f} s")
         if b:
             log(f"Tile {key}: {len(b)} buildings, {len(s)} streets ({os.path.getsize(path) / 1e3:.0f} kB) [{n + 1}/{len(todo)}]")
         save()
