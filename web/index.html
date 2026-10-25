@@ -66,6 +66,11 @@ canvas{display:block;width:100%;height:100%}
 .maptag{position:absolute;left:10px;bottom:10px;font-size:.8rem;font-weight:600;background:var(--card);border-radius:999px;padding:4px 10px;pointer-events:none;color:var(--muted)}
 .compass{position:absolute;right:10px;top:10px;width:36px;height:36px;border-radius:50%;background:var(--card);display:grid;place-items:center;pointer-events:none}
 .compass path{fill:var(--yolk)}
+.treebtn{position:absolute;right:10px;top:54px;width:36px;height:36px;border-radius:50%;background:var(--card);display:grid;place-items:center;border:0;padding:0;cursor:pointer;color:var(--tree)}
+.treebtn[hidden]{display:none}
+.treebtn .off{display:none}
+.treebtn[aria-pressed="false"]{color:var(--muted)}
+.treebtn[aria-pressed="false"] .off{display:inline}
 .notice{position:absolute;left:10px;top:10px;right:56px;font-size:.88rem;font-weight:500;background:var(--card);border-radius:12px;padding:8px 11px}
 
 /* time */
@@ -142,6 +147,7 @@ footer{font-size:.78rem;color:var(--muted);line-height:1.5;max-width:68ch;paddin
       <canvas id="map" aria-label="Map with building shadows and terraces"></canvas>
       <div class="compass" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 30 30"><path d="M15 3 L19 15 L15 13 L11 15 Z"/><path d="M15 27 L11 15 L15 17 L19 15 Z" opacity=".35"/></svg></div>
       <div class="notice" id="notice" hidden></div>
+      <button class="treebtn" id="treeBtn" type="button" aria-pressed="true" aria-label="Trees" title="Trees: shown and counted for shade" hidden><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9.5" r="6.5" fill="currentColor"/><rect x="11" y="14" width="2" height="7" rx="1" fill="currentColor"/><path class="off" d="M4 20 L20 4" stroke="var(--card)" stroke-width="4.5" stroke-linecap="round"/><path class="off" d="M4 20 L20 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       <div class="maptag" id="maptag">Loading …</div>
     </div>
 
@@ -179,7 +185,7 @@ const TILES = new Map();      // "ix_iy" -> {state:'loading'|'ready', b:[buildin
 const STREET_IDS = new Set();
 // trees (Stadt Wien Baumkataster): height and crown classes → metres (class middles)
 const TREE_H = [0,4,8,13,18,23,28,33,38,43], TREE_C = [0,2.5,5,8,11,14,17,20,23,25];
-let LEAVES = true;   // deciduous trees in leaf on the chosen day (mid April – mid November)
+let LEAVES = true, SHOW_TREES = true;   // SHOW_TREES: the map's tree button (also takes trees out of the sun calculation)   // deciduous trees in leaf on the chosen day (mid April – mid November)
 const inLeaf = d => { const md=(d.getMonth()+1)*100+d.getDate(); return md>=410 && md<=1115; };
 
 /* ---------- geometry ---------- */
@@ -284,7 +290,7 @@ function sunPos(date, lat, lng){
 // crown = cylinder (radius r) from its base up to its middle, with a half-ellipsoid dome on top:
 // flat underneath like a real canopy, so standing under a tree with the sun high is shade
 function treeBlocks(T,px,py,dx,dy,tanA,eye){
-  if(!T.ev && !LEAVES) return false;
+  if(!SHOW_TREES || (!T.ev && !LEAVES)) return false;
   const zb=T.g+T.zb, zt=T.g+T.h; if(zt<=eye) return false;
   const zc=(zt+zb)/2, c=(zt-zb)/2, r2=T.r*T.r, ux=px-T.x, uy=py-T.y, ud=ux*dx+uy*dy, uu=ux*ux+uy*uy;
   const q=ud*ud-(uu-r2); if(q<0) return false;            // the ray never passes over the crown
@@ -408,6 +414,7 @@ function drawStreetLabels(v){
   }
 }
 function drawTrees(v){
+  if(!SHOW_TREES) return;
   ctx.fillStyle=colors.tree; ctx.strokeStyle=colors.tree;
   for(const T of tilesIn(v)) for(const t of T.trees){ if(!meets(t,v)) continue; const R=t.r*view.s; if(R<0.7) continue;
     ctx.beginPath(); ctx.arc(sx(t.x),sy(t.y),R,0,7);
@@ -449,7 +456,7 @@ function draw(){
       }
       // a crown (ellipsoid) casts an ellipse: as wide as the crown, stretched along the sun's direction
       const ang=Math.atan2(-dy,dx);
-      for(const T of tilesIn(viewRect(MAXREACH))) for(const t of T.trees){ if(!t.ev && !LEAVES) continue;
+      if(SHOW_TREES) for(const T of tilesIn(viewRect(MAXREACH))) for(const t of T.trees){ if(!t.ev && !LEAVES) continue;
         const c=(t.h-t.zb)/2, d=Math.min(MAXREACH,(t.zb+c)/tanA), d0=Math.min(MAXREACH,t.zb/tanA), X=sx(t.x+dx*d), Y=sy(t.y+dy*d), a=t.r*view.s, maj=Math.min(MAXREACH,Math.hypot(t.r,c/tanA))*view.s;
         if(X+maj<0||X-maj>W||Y+maj<0||Y-maj>H) continue;
         octx.beginPath(); octx.ellipse(X,Y,maj,a,ang,0,7); octx.fill();       // the dome
@@ -480,11 +487,12 @@ function draw(){
   }
   if (!near && view.s<0.12) drawDistrictNames();
   labels.sort((a,b)=>b.sel-a.sel || b.f-a.f);
-  const placed=vis.map(t=>{const X=sx(t.x),Y=sy(t.y);return {x:X-R,y:Y-R,w:2*R,h:2*R};}), hits=(r)=>placed.some(p=>r.x<p.x+p.w&&r.x+r.w>p.x&&r.y<p.y+p.h&&r.y+r.h>p.y);
+  // the first box keeps name pills off the compass and the tree button
+  const placed=[{x:W-56,y:0,w:56,h:near?98:54}, ...vis.map(t=>{const X=sx(t.x),Y=sy(t.y);return {x:X-R,y:Y-R,w:2*R,h:2*R};})], hits=(r)=>placed.some(p=>r.x<p.x+p.w&&r.x+r.w>p.x&&r.y<p.y+p.h&&r.y+r.h>p.y);
   for(const L of labels){ const sel=L.sel; ctx.font=`${sel?700:600} ${sel?13:12}px Figtree,system-ui,sans-serif`; ctx.textAlign='left'; ctx.textBaseline='middle';
     const label=L.t.name||L.t.addr, w=ctx.measureText(label).width+14, h=22, g=L.R+5;
     const opts=[[L.X+g,L.Y-h/2],[L.X-g-w,L.Y-h/2],[L.X-w/2,L.Y-g-h],[L.X-w/2,L.Y+g]];
-    let spot=null; for(const [x,y] of opts){ const r={x,y,w,h}; const fits=x>=4&&y>=4&&x+w<=W-4&&y+h<=H-4; if(fits&&(sel||!hits(r))){ spot=r; break; } }
+    let spot=null; for(const [x,y] of opts){ const r={x,y,w,h}; const fits=x>=4&&y>=4&&x+w<=W-4&&y+h<=H-4&&!(x+w>W-56&&y<(near?98:54)); if(fits&&(sel||!hits(r))){ spot=r; break; } }
     if(!spot) continue; placed.push(spot);
     ctx.beginPath(); ctx.roundRect(spot.x,spot.y,w,h,11); ctx.fillStyle=sel?colors.ink:colors.card; ctx.fill();
     ctx.fillStyle=sel?colors.card:colors.ink; ctx.fillText(label,spot.x+7,spot.y+h/2+.5); }
@@ -517,6 +525,7 @@ async function loadTile(k){
   updateTag(); draw(); renderList();
 }
 function updateTag(){
+  $('treeBtn').hidden = view.s<NEAR;
   $('maptag').textContent = tilesLoading() ? 'Loading buildings …' : view.s<NEAR ? 'Zoom in to see sun and shade' : 'Drag to move, pinch to zoom';
 }
 
@@ -629,6 +638,12 @@ let raf=null; $('time').oninput=e=>{ minute=+e.target.value; if(raf) return; raf
 /* ---------- jump to a district: centre on its busiest café street ---------- */
 const store={ get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
 function saveView(){ const lon=LON0+view.cx/KX, lat=LAT0+view.cy/KY; store.set('view',JSON.stringify({lon,lat,s:view.s})); }
+function setTrees(on){
+  SHOW_TREES=on; store.set('trees',on?'on':'off');
+  const b=$('treeBtn'); b.setAttribute('aria-pressed',on); b.title = on ? 'Trees: shown and counted for shade' : 'Trees: hidden, sun from buildings only';
+}
+$('treeBtn').onclick=()=>{ setTrees(!SHOW_TREES); if(dayCache){ dayCache.fr.clear(); queue.length=0; enqueue(TERRACES.filter(t=>t.ready)); }
+  showNotice(SHOW_TREES ? 'Trees on: their shade counts.' : 'Trees off: sun from buildings only.', 2500); refresh(); };
 function jumpTo(d){
   const ts=TERRACES.filter(t=>t.d===d); if(!ts.length) return;
   let best=ts[0], bn=-1;
@@ -639,6 +654,7 @@ function jumpTo(d){
 }
 async function init(){
   readColors();
+  setTrees(store.get('trees')!=='off');
   let index, city;
   try{
     const [r1,r2,r3]=await Promise.all([fetch(`${DATA}index.json`),fetch(`${DATA}city.json`),fetch(`${DATA}tiles.json`)]);
