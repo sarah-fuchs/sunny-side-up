@@ -9,12 +9,12 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-17 -17 34 34'%3E%3Cpath d='M16.6 0.0 L16.3 3.7 L14.1 6.8 L11.3 9.0 L8.7 10.9 L6.0 12.5 L3.0 13.2 L0.0 12.9 L-2.9 12.7 L-6.2 13.0 L-10.2 12.8 L-13.6 10.8 L-14.8 7.1 L-13.8 3.2 L-12.4 0.0 L-12.0 -2.7 L-12.1 -5.8 L-11.4 -9.1 L-9.4 -11.7 L-6.5 -13.6 L-3.4 -15.1 L-0.0 -16.1 L3.6 -15.6 L6.3 -13.2 L7.9 -9.9 L9.1 -7.3 L11.3 -5.5 L14.4 -3.3Z' fill='%23fff' stroke='%232B2B2B' stroke-width='2.5'/%3E%3Ccircle cx='1' cy='-1' r='7' fill='%23FFA51F' stroke='%232B2B2B' stroke-width='2.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700;800&display=swap">
 <style>
 /* Calm and simple, after drip: flat white surfaces on a soft mint-grey page, one accent (yolk orange), the egg as logo. */
 :root{
   --paper:#EEF4F0; --card:#FFFFFF; --ink:#26262B; --muted:#6B6E75; --line:#E1E8E3;
-  --yolk:#FFA51F; --yolk-ink:#9A5800; --mint:#8FEACF; --pink:#FF5FAE;
+  --yolk:#FFA51F; --yolk-ink:#9A5800; --mint:#8FEACF; --pink:#FF5FAE; --yellow:#FFE347; --lift-s:3px 3px 0 var(--ink);
   --street:#FFD84D; --shade:#B9B0EE; --building:#4A4A55; --building-tall:#36363F; --land:#E6ECE8; --water:#6EC3F0;
   --display:"Bagel Fat One", "Cooper Black", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -22,12 +22,12 @@
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#18181A; --card:#232326; --ink:#F2F2EF; --muted:#A9A9A4; --line:#313135;
-  --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8;
+  --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8; --yellow:#FFE347; --lift-s:3px 3px 0 #000;
   --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0;
   color-scheme:dark }}
 :root[data-theme="dark"]{
   --paper:#18181A; --card:#232326; --ink:#F2F2EF; --muted:#A9A9A4; --line:#313135;
-  --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8;
+  --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8; --yellow:#FFE347; --lift-s:3px 3px 0 #000;
   --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0;
   color-scheme:dark }
 
@@ -38,17 +38,25 @@ button,select,input{font:inherit;color:inherit}
 .app{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px;
   padding:10px max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px))}
 
-/* header: egg + name, district jump on the right */
-header{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding-top:4px}
-header h1{min-width:0}
-.sunpath{flex:none;display:flex;flex-direction:column;align-items:flex-end}
-.sunpath svg{display:block;width:132px;height:auto;overflow:visible}
-.readout{font-size:.8rem;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
-h1{font-family:var(--display);font-weight:400;font-size:clamp(1.6rem,8vw,2.1rem);line-height:.95;margin:0 0 6px;text-wrap:balance}
-.jump{position:relative;align-self:flex-start}
-.jump select{appearance:none;-webkit-appearance:none;border:0;background:var(--card);border-radius:999px;padding:8px 30px 8px 13px;font-weight:600;font-size:.88rem;cursor:pointer;min-width:9em}
-.jump::after{content:"";position:absolute;right:14px;top:50%;width:7px;height:7px;margin-top:-5px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);pointer-events:none}
+/* header: playful wordmark + egg on the sun arc + district picker (kept from the first design) */
+header{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title sun" "pick pick";gap:10px 14px;align-items:center}
+.title{grid-area:title;min-width:0}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.1rem,9vw,3.1rem);line-height:.9;letter-spacing:-.01em;margin:0;color:var(--ink);
+  text-shadow:3px 3px 0 var(--pink);text-wrap:balance}
+.sub{font-size:.95rem;font-weight:500;color:var(--muted);margin-top:8px}
+.sunpath{grid-area:sun;width:150px;text-align:center}
+.sunpath svg{display:block;width:150px;height:auto;overflow:visible;margin-top:6px}
+.readout{font-size:.86rem;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.picker{grid-area:pick;justify-self:start;display:flex;align-items:center;gap:10px}
+.picker span{font-weight:700;font-size:.95rem}
+.picker select{font:700 1rem var(--body);color:var(--ink);background:var(--yellow);border:2.5px solid var(--ink);border-radius:999px;
+  padding:9px 40px 9px 16px;max-width:min(70vw,320px);box-shadow:var(--lift-s);appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);
+  background-position:calc(100% - 22px) 54%,calc(100% - 15px) 54%;background-size:7px 7px;background-repeat:no-repeat}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .picker select{color:#2B2B2B;background-image:linear-gradient(45deg,transparent 50%,#2B2B2B 50%),linear-gradient(135deg,#2B2B2B 50%,transparent 50%)} }
+:root[data-theme="dark"] .picker select{color:#2B2B2B}
 
+@media (min-width:880px){ header{grid-template-columns:auto 1fr auto;grid-template-areas:"title pick sun"} .picker{justify-self:end} }
 /* layout */
 .main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
 .mapwrap{position:relative;height:clamp(300px,52svh,560px);border-radius:18px;overflow:hidden;background:var(--land);touch-action:none}
@@ -110,17 +118,24 @@ footer{font-size:.78rem;color:var(--muted);line-height:1.5;max-width:68ch;paddin
 <body>
 <div class="app">
   <header>
-    <h1>Sunny Side Up</h1>
-    <div class="sunpath" aria-hidden="true">
-      <svg viewBox="0 -16 150 90">
-        <path d="M10 66 A65 56 0 0 1 140 66" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="1.5 6" stroke-linecap="round" opacity=".7"/>
-        <line x1="2" y1="66" x2="148" y2="66" stroke="var(--line)" stroke-width="2.5" stroke-linecap="round"/>
-        <g id="egg" transform="translate(75 10) scale(1.3)"><path d="M16.6 0.0 L16.3 3.7 L14.1 6.8 L11.3 9.0 L8.7 10.9 L6.0 12.5 L3.0 13.2 L0.0 12.9 L-2.9 12.7 L-6.2 13.0 L-10.2 12.8 L-13.6 10.8 L-14.8 7.1 L-13.8 3.2 L-12.4 0.0 L-12.0 -2.7 L-12.1 -5.8 L-11.4 -9.1 L-9.4 -11.7 L-6.5 -13.6 L-3.4 -15.1 L-0.0 -16.1 L3.6 -15.6 L6.3 -13.2 L7.9 -9.9 L9.1 -7.3 L11.3 -5.5 L14.4 -3.3Z" fill="#fff" stroke="#2B2B2B" stroke-width="2" stroke-linejoin="round"/><circle cx="1" cy="-1" r="7" fill="var(--yolk)" stroke="#2B2B2B" stroke-width="2"/><ellipse cx="-1.4" cy="-3.4" rx="2.2" ry="1.4" fill="#fff" opacity=".9"/></g>
-      </svg>
-      <div class="readout" id="readout"></div>
+    <div class="title">
+      <h1>Sunny Side Up</h1>
+      <div class="sub" id="sub">Schanigärten in the sun, Wien</div>
     </div>
+    <div class="sunpath" aria-hidden="true">
+      <svg viewBox="0 -14 150 92" id="sunsvg">
+        <path d="M10 66 A65 56 0 0 1 140 66" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="2 6" stroke-linecap="round"/>
+        <line x1="2" y1="66" x2="148" y2="66" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>
+        <g id="egg" transform="translate(75 10)"><path d="M17.2 0.0 L16.9 3.9 L14.6 7.0 L11.7 9.3 L9.0 11.3 L6.2 13.0 L3.1 13.7 L0.0 13.4 L-3.0 13.1 L-6.5 13.4 L-10.6 13.2 L-14.0 11.2 L-15.3 7.4 L-14.3 3.3 L-12.8 0.0 L-12.4 -2.8 L-12.5 -6.0 L-11.8 -9.4 L-9.7 -12.1 L-6.8 -14.1 L-3.6 -15.6 L-0.0 -16.6 L3.7 -16.1 L6.6 -13.6 L8.2 -10.2 L9.4 -7.5 L11.7 -5.6 L14.9 -3.4Z" fill="#FFFFFF" stroke="#2B2B2B" stroke-width="2.5" stroke-linejoin="round"/><circle cx="1" cy="-1" r="7.5" fill="var(--yolk)" stroke="#2B2B2B" stroke-width="2.5"/><ellipse cx="-1.6" cy="-3.6" rx="2.4" ry="1.5" fill="#FFFFFF" opacity=".9"/></g>
+        <text id="sunrise" x="10" y="78" font-size="10" font-weight="700" text-anchor="middle" fill="var(--muted)" font-family="Figtree,sans-serif"></text>
+        <text id="sunset" x="140" y="78" font-size="10" font-weight="700" text-anchor="middle" fill="var(--muted)" font-family="Figtree,sans-serif"></text>
+      </svg>
+      <div class="readout" id="readout">–</div>
+    </div>
+    <label class="picker"><span>District</span>
+      <select id="district" aria-label="Jump to a district"></select>
+    </label>
   </header>
-  <label class="jump"><select id="district" aria-label="Jump to a district"></select></label>
 
   <div class="main">
     <div class="mapwrap" id="mapwrap">
@@ -142,7 +157,6 @@ footer{font-size:.78rem;color:var(--muted);line-height:1.5;max-width:68ch;paddin
     </div>
 
     <div class="listwrap">
-      <div class="area" id="sub">Schanigärten in the sun, Wien</div>
       <div class="list" id="list" aria-live="polite"></div>
     </div>
   </div>
@@ -504,9 +518,9 @@ function renderList(){
 /* ---------- where am I: nearest district for the subtitle ---------- */
 function updateArea(){
   if(!TERRACES.length) return;
-  if(view.s<0.06){ $('sub').textContent='All of Vienna'; return; }
+  if(view.s<0.06){ $('sub').textContent='Schanigärten in the sun, all of Wien'; $('district').value=''; return; }
   let best=null,bd=1e18; for(const t of TERRACES){ const d=(t.x-view.cx)**2+(t.y-view.cy)**2; if(d<bd){bd=d;best=t;} }
-  const d=DISTRICTS.find(x=>x.d===best.d); if(d) $('sub').textContent=`Around ${d.plz} ${d.name}`;
+  const d=DISTRICTS.find(x=>x.d===best.d); if(d){ $('sub').textContent=`Schanigärten in the sun, ${d.plz} ${d.name}`; $('district').value=String(d.d); }
 }
 
 /* ---------- controls ---------- */
@@ -514,8 +528,9 @@ function updateReadout(){
   const sp=sunPos(dateAt(minute),LAT0,LON0), dir=['north','north-east','east','south-east','south','south-west','west','north-west'][Math.round(sp.az/RAD/45)%8];
   $('readout').textContent = sp.alt>0 ? `${(sp.alt/RAD).toFixed(0)}° high in the ${dir}` : 'Below the horizon';
   const p=Math.max(0,Math.min(1,(minute-dayCache.rise)/((dayCache.set-dayCache.rise)||1))), th=Math.PI*(1-p), egg=$('egg');
-  egg.setAttribute('transform',`translate(${(75+65*Math.cos(th)).toFixed(1)} ${(66-56*Math.sin(th)).toFixed(1)}) scale(1.3) rotate(${(p*40-20).toFixed(0)})`);
+  egg.setAttribute('transform',`translate(${(75+65*Math.cos(th)).toFixed(1)} ${(66-56*Math.sin(th)).toFixed(1)}) scale(1.45) rotate(${(p*40-20).toFixed(0)})`);
   egg.style.opacity = sp.alt>0 ? 1 : .35;
+  $('sunrise').textContent=fmt(dayCache.rise); $('sunset').textContent=fmt(dayCache.set);
   $('timebig').textContent=fmt(minute);
   const today=new Date(); today.setHours(0,0,0,0); const diff=Math.round((day-today)/864e5);
   $('btnToday').setAttribute('aria-pressed',diff===0); $('btnTomorrow').setAttribute('aria-pressed',diff===1);
@@ -561,8 +576,8 @@ async function init(){
     return o; });
   loadCity(city);
   const sel=$('district');
-  sel.innerHTML=`<option value="">Districts</option>`+DISTRICTS.map(x=>`<option value="${x.d}">${x.d}. ${esc(x.name)} · ${x.terraces}</option>`).join('');
-  sel.onchange=()=>{ const d=+sel.value; sel.value=''; if(d) jumpTo(d); };
+  sel.innerHTML=`<option value="">All of Wien</option>`+DISTRICTS.map(x=>`<option value="${x.d}">${x.d}. ${esc(x.name)} · ${x.terraces}</option>`).join('');
+  sel.onchange=()=>{ const d=+sel.value; if(d) jumpTo(d); };
   if(index.updated) $('footer').textContent+=` Data from ${index.updated}.`;
   goNow();
   new ResizeObserver(resize).observe(wrap);
