@@ -72,7 +72,7 @@ PAUSE = 0.7   # seconds between requests, to stay polite with the city server
 WAITS = [10, 30, 90, 180]  # backoff between attempts
 
 
-def http_json(url, data=None, kind="get", key=None, tries=len(WAITS) + 1):
+def http_json(url, data=None, kind="get", key=None, tries=len(WAITS) + 1, timeout=90):
     if FIXTURES:
         with open(_cache_name(kind, key or url), encoding="utf-8") as f:
             return json.load(f)
@@ -83,7 +83,7 @@ def http_json(url, data=None, kind="get", key=None, tries=len(WAITS) + 1):
         time.sleep(PAUSE)
         try:
             req = urllib.request.Request(url, data=body, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=90) as r:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
                 text = r.read().decode("utf-8", "replace")
                 return json.loads(text)
         except urllib.error.HTTPError as e:
@@ -102,7 +102,7 @@ def http_json(url, data=None, kind="get", key=None, tries=len(WAITS) + 1):
     raise (ServerUnreachable if unreachable else RuntimeError)(f"giving up on {short}: {detail[:300]}")
 
 
-def wfs(type_name, extra, page=5000, key=None):
+def wfs(type_name, extra, page=5000, key=None, timeout=90):
     """Fetch all features of a WFS 2.0.0 layer, paging by startIndex."""
     feats, start = [], 0
     while True:
@@ -112,7 +112,7 @@ def wfs(type_name, extra, page=5000, key=None):
             "count": page, "startIndex": start, **extra,
         }
         url = WFS + "?" + urllib.parse.urlencode(params, safe=":,")
-        j = http_json(url, kind="wfs", key=f"{key or type_name}_{start}")
+        j = http_json(url, kind="wfs", key=f"{key or type_name}_{start}", timeout=timeout)
         got = j.get("features", [])
         feats += got
         if len(got) < page:
@@ -887,7 +887,8 @@ def is_evergreen(species):
 
 def load_trees():
     log("Fetching trees …")
-    feats = wfs("ogdwien:BAUMKATOGD", {"sortBy": "OBJECTID"}, page=5000, key="trees")
+    # smaller pages and a long timeout: deep pages of a sorted query are slow on the city server
+    feats = wfs("ogdwien:BAUMKATOGD", {"sortBy": "OBJECTID"}, page=2000, key="trees", timeout=240)
     out, skipped = [], 0
     for f in feats:
         g = f.get("geometry") or {}
