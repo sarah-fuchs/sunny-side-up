@@ -908,7 +908,9 @@ def build_trees():
         ix, iy = math.floor(x / TILE_M), math.floor(y / TILE_M)
         by_tile[f"{ix}_{iy}"] += [round((x - ix * TILE_M) * 10), round((y - iy * TILE_M) * 10), code]
     tiles, empty = dict(idx["tiles"]), set(idx.get("empty", []))
-    keys = set(tiles) | set(by_tile)
+    # only tiles whose buildings were fetched (with or without buildings); the rest get their trees next time
+    keys = set(tiles) | (set(by_tile) & empty)
+    waiting = len(set(by_tile) - set(tiles) - empty)
     for key in sorted(keys):
         path = os.path.join(tiles_dir, f"{key}.json")
         data = _read_tile(path)
@@ -930,8 +932,8 @@ def build_trees():
                 "treesUpdated": time.strftime("%Y-%m-%d")})
     with open(idx_path, "w", encoding="utf-8") as f:
         json.dump(idx, f, separators=(",", ":"))
-    log(f"trees written into {len(by_tile)} tiles")
-    annotate("notice", "Trees written", f"{len(trees)} trees in {len(by_tile)} tiles")
+    log(f"trees written; {waiting} tiles with trees still wait for their buildings")
+    annotate("notice", "Trees written", f"{len(trees)} trees; {waiting} tiles skipped until their buildings are fetched (run 'tiles', then 'trees' again)")
 
 
 def main():
