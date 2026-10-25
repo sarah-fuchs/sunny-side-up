@@ -18,7 +18,7 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 ## Design (decided with Sarah)
 
 - **Simple and calm, inspired by the drip app** (decided 2026-10-25, replaced the louder "sticker" look): flat white surfaces on a soft mint-grey page, no thick outlines or offset shadows, one accent colour (yolk orange #FFA51F). Name stays "Sunny Side Up"; the fried egg stays as the logo/mascot (Sarah and others find it cute).
-- Header: egg logo + "Sunny Side Up" (Bagel Fat One, the only display-font use) and a compact "Districts" jump menu. No sun arc, no sun-angle readout.
+- Header: "Sunny Side Up" (Bagel Fat One, the only display-font use) on the left; on the right the fried egg travelling along a dotted sun arc (sunrise → sunset, follows the time slider) with "26° high in the south-east" under it. Sarah likes the egg showing the sun's height. The "Districts" jump menu sits on its own row under the header.
 - Time card: Now / Today / Tomorrow / calendar icon (transparent native date input on top; shows the date when another day is picked); thin slider with orange thumb; sunrise · big time · sunset under it.
 - List: one white rounded panel with hairline rows: coloured dot (orange sun, mint shade, half/half partly), name + address, status on the right ("Sun until 14:40" in orange when sunny). Tapping a row opens its sun-timeline bar and details and centres the map.
 - Map: dark grey buildings, solid lilac shadows (#B9B0EE, opaque — semi-transparent shade over yellow turned muddy brown), strong golden sunlit ground (#FFD84D), blue water. Terrace dots with a thin white ring; plain white name pills, selected one dark.
