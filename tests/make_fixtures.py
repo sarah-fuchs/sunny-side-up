@@ -149,6 +149,19 @@ def main():
         n_tiles += 1
         for start in range(0, len(inbox) + 1, 1000):
             dump(os.path.basename(build._cache_name("wfs", f"tile_{ix}_{iy}".replace("-", "m") + f"_{start}")), {"type": "FeatureCollection", "features": inbox[start:start + 1000]})
+    # trees: a row along every second street of the Spittelberg grid, some conifers, one unknown
+    tp = build.Proj(16.3555, 48.2030)
+    trees, oid = [], 0
+    for i in range(-4, 5, 2):
+        for j in range(-12, 13):
+            oid += 1
+            lon, lat = tp.ll(i * 47 - 4.5 + 2.5, j * 9)
+            species = "Pinus nigra (Schwarzkiefer)" if j % 7 == 0 else "Aesculus hippocastanum (Rosskastanie)"
+            trees.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                          "properties": {"OBJECTID": oid, "GATTUNG_ART": species, "BAUMHOEHE": 3 + (j % 2), "KRONENDURCHMESSER": 2 + (j % 3)}})
+    trees.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": list(tp.ll(0, 0))},
+                  "properties": {"OBJECTID": 9999, "GATTUNG_ART": "Jungbaum", "BAUMHOEHE": 0, "KRONENDURCHMESSER": 0}})
+    dump("wfs_trees_0.json", {"type": "FeatureCollection", "features": trees})
     for i, el in enumerate(all_streets):
         el["id"] = 1000 + i
     dump("osm_streets_all.json", {"elements": all_streets})

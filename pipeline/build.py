@@ -814,9 +814,13 @@ def build_tiles(redo=False, max_minutes=280):
         ox, oy = ix * TILE_M, iy * TILE_M
         s = [{"i": sid, "n": name, "l": encode_line(pts, ox, oy)} for sid, name, pts, _ in sgrid.get((ix, iy), [])]
         path = os.path.join(tiles_dir, f"{key}.json")
-        if b:
+        old_trees = _read_tile(path).get("t")
+        if b or old_trees:
+            data = {"x": ix, "y": iy, "b": b, "s": s}
+            if old_trees:
+                data["t"] = old_trees  # trees come from --trees; keep them
             with open(path, "w", encoding="utf-8") as f:
-                json.dump({"x": ix, "y": iy, "b": b, "s": s}, f, ensure_ascii=False, separators=(",", ":"))
+                json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
             tiles[key] = len(b)
             empty.discard(key)
         else:
@@ -825,7 +829,7 @@ def build_tiles(redo=False, max_minutes=280):
             empty.add(key)
             tiles.pop(key, None)
         done.append(key)
-        if b and not first_logged:
+        if b and not first_logged:  # noqa: SIM102
             first_logged = True
             annotate("notice", "Tiles: first tile", f"Tile {key}: {len(b)} buildings, {len(s)} streets, {os.path.getsize(path) / 1e3:.0f} kB")
         if len(done) % 100 == 0:
@@ -839,6 +843,97 @@ def build_tiles(redo=False, max_minutes=280):
     return done, failed
 
 
+# ---------------------------------------------------------------- trees (Baumkataster) into the map tiles
+#
+# Every tree of the city's tree register goes into the tile that holds it, as flat triplets
+#   "t": [x, y, code, x, y, code, ...]
+# x, y in decimetres from the tile's south-west corner; code = height class * 10 + crown class,
+# plus 100 for evergreens (conifers etc.). Height classes: 1 = 0–5 m, 2 = 6–10 m, … 7 = 31–35 m
+# (5 m steps); crown classes: 1 = 0–3 m, 2 = 4–6 m, … 7 = 19–21 m, 8 = over 21 m (3 m steps).
+# Unknown height or crown (class 0) is skipped.
+
+EVERGREEN = {"pinus", "picea", "abies", "taxus", "thuja", "chamaecyparis", "juniperus", "cedrus", "pseudotsuga",
+             "tsuga", "cupressus", "cupressocyparis", "sequoiadendron", "sequoia", "cryptomeria", "calocedrus",
+             "platycladus", "ilex", "magnolia grandiflora"}
+
+
+def _read_tile(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def is_evergreen(species):
+    sp = (species or "").lower().replace("×", "").replace(" x ", " ").strip()
+    genus = sp.split(" ")[0] if sp else ""
+    return genus in EVERGREEN or " ".join(sp.split(" ")[:2]) in EVERGREEN
+
+
+def load_trees():
+    log("Fetching trees …")
+    feats = wfs("ogdwien:BAUMKATOGD", {"sortBy": "OBJECTID"}, page=5000, key="trees")
+    out, skipped = [], 0
+    for f in feats:
+        g = f.get("geometry") or {}
+        p = f.get("properties", {})
+        if g.get("type") != "Point":
+            continue
+        try:
+            h, c = int(p.get("BAUMHOEHE") or 0), int(p.get("KRONENDURCHMESSER") or 0)
+        except (TypeError, ValueError):
+            h = c = 0
+        if not (1 <= h <= 9 and 1 <= c <= 9):
+            skipped += 1
+            continue
+        x, y = CITY.xy(*g["coordinates"][:2])
+        out.append((x, y, h * 10 + c + (100 if is_evergreen(p.get("GATTUNG_ART")) else 0)))
+    log(f"  {len(out)} trees ({skipped} without height or crown size)")
+    annotate("notice", "Trees", f"{len(feats)} rows, {len(out)} trees kept, {sum(1 for t in out if t[2] >= 100)} evergreen; "
+             f"sample: {json.dumps(feats[0].get('properties', {}), ensure_ascii=False)[:300] if feats else 'none'}")
+    return out
+
+
+def build_trees():
+    """Put every tree into the map tiles (run after --tiles)."""
+    tiles_dir = os.path.join(OUT, TILES_DIR)
+    idx_path = os.path.join(OUT, "tiles.json")
+    idx = _read_tile(idx_path)
+    if not idx.get("tiles"):
+        raise RuntimeError("no tiles.json yet: run --tiles first")
+    trees = load_trees()
+    by_tile = defaultdict(list)
+    for x, y, code in trees:
+        ix, iy = math.floor(x / TILE_M), math.floor(y / TILE_M)
+        by_tile[f"{ix}_{iy}"] += [round((x - ix * TILE_M) * 10), round((y - iy * TILE_M) * 10), code]
+    tiles, empty = dict(idx["tiles"]), set(idx.get("empty", []))
+    keys = set(tiles) | set(by_tile)
+    for key in sorted(keys):
+        path = os.path.join(tiles_dir, f"{key}.json")
+        data = _read_tile(path)
+        t = by_tile.get(key)
+        if not data:
+            if not t:
+                continue
+            ix, iy = (int(v) for v in key.split("_"))
+            data = {"x": ix, "y": iy, "b": [], "s": []}
+        if t:
+            data["t"] = t
+        elif "t" in data:
+            del data["t"]
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+        tiles.setdefault(key, len(data["b"]))
+        empty.discard(key)
+    idx.update({"tiles": dict(sorted(tiles.items())), "empty": sorted(empty), "trees": len(trees),
+                "treesUpdated": time.strftime("%Y-%m-%d")})
+    with open(idx_path, "w", encoding="utf-8") as f:
+        json.dump(idx, f, separators=(",", ":"))
+    log(f"trees written into {len(by_tile)} tiles")
+    annotate("notice", "Trees written", f"{len(trees)} trees in {len(by_tile)} tiles")
+
+
 def main():
     global FIXTURES, OUT
     ap = argparse.ArgumentParser()
@@ -848,6 +943,7 @@ def main():
     ap.add_argument("--no-water", action="store_true", help="don't fetch water; keep what city.json has")
     ap.add_argument("--tiles", action="store_true", help="fetch the map tiles (every building) that aren't done yet")
     ap.add_argument("--tiles-all", action="store_true", help="fetch all map tiles again")
+    ap.add_argument("--trees", action="store_true", help="put every tree of the city's tree register into the map tiles")
     ap.add_argument("--max-minutes", type=int, default=280, help="stop fetching tiles after this long (default 280)")
     ap.add_argument("--fixtures", help="read cached responses from this folder (offline tests)")
     ap.add_argument("--out", default=OUT, help="output data folder (default web/data)")
@@ -856,6 +952,9 @@ def main():
     OUT = a.out
     wanted = a.districts or sorted(DISTRICTS)
     os.makedirs(os.path.join(OUT, "districts"), exist_ok=True)
+    if a.trees:
+        build_trees()
+        return
     if a.tiles or a.tiles_all:
         done, failed = build_tiles(redo=a.tiles_all, max_minutes=a.max_minutes)
         log(f"tiles done: {len(done)}; not done: {len(failed)}")

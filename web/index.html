@@ -15,7 +15,7 @@
 :root{
   --paper:#EEF4F0; --card:#FFFFFF; --ink:#26262B; --muted:#6B6E75; --line:#E1E8E3;
   --yolk:#FFA51F; --yolk-ink:#9A5800; --mint:#8FEACF; --pink:#FF5FAE; --yellow:#FFE347; --lift-s:3px 3px 0 var(--ink);
-  --street:#FFD84D; --shade:#B9B0EE; --building:#4A4A55; --building-tall:#36363F; --land:#E6ECE8; --water:#6EC3F0;
+  --street:#FFD84D; --shade:#B9B0EE; --building:#4A4A55; --building-tall:#36363F; --land:#E6ECE8; --water:#6EC3F0; --tree:#7FAE8A;
   --display:"Bagel Fat One", "Cooper Black", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme:light;
@@ -23,12 +23,12 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#18181A; --card:#232326; --ink:#F2F2EF; --muted:#A9A9A4; --line:#313135;
   --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8; --yellow:#FFE347; --lift-s:3px 3px 0 #000;
-  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0;
+  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0; --tree:#3F6B4D;
   color-scheme:dark }}
 :root[data-theme="dark"]{
   --paper:#18181A; --card:#232326; --ink:#F2F2EF; --muted:#A9A9A4; --line:#313135;
   --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8; --yellow:#FFE347; --lift-s:3px 3px 0 #000;
-  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0;
+  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0; --tree:#3F6B4D;
   color-scheme:dark }
 
 *{box-sizing:border-box}
@@ -177,11 +177,15 @@ let TERRACES = [], BYID = new Map(), STREETS = [], WATER = [], RIVERS = [], DIST
 let TILEIDX = null;           // data/tiles.json: {size, tiles: {"ix_iy": buildings}}
 const TILES = new Map();      // "ix_iy" -> {state:'loading'|'ready', b:[buildings], x0,y0,x1,y1}
 const STREET_IDS = new Set();
+// trees (Stadt Wien Baumkataster): height and crown classes → metres (class middles)
+const TREE_H = [0,4,8,13,18,23,28,33,38,43], TREE_C = [0,2.5,5,8,11,14,17,20,23,25];
+let LEAVES = true;   // deciduous trees in leaf on the chosen day (mid April – mid November)
+const inLeaf = d => { const md=(d.getMonth()+1)*100+d.getDate(); return md>=410 && md<=1115; };
 
 /* ---------- geometry ---------- */
 function inside(px,py,pts){ let c=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const [xi,yi]=pts[i],[xj,yj]=pts[j];
   if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) c=!c; } return c; }
-function insideAny(x,y){ const l=GRID.get(ck(Math.floor(x/CELL),Math.floor(y/CELL))); if(!l) return null; for(const b of l){ if(x<b.x0||x>b.x1||y<b.y0||y>b.y1) continue; if(inside(x,y,b.pts)) return b; } return null; }
+function insideAny(x,y){ const l=GRID.get(ck(Math.floor(x/CELL),Math.floor(y/CELL))); if(!l) return null; for(const b of l){ if(b.tree) continue; if(x<b.x0||x>b.x1||y<b.y0||y>b.y1) continue; if(inside(x,y,b.pts)) return b; } return null; }
 function nearestEdge(x,y,pts){ let best=null,bd=1e9; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const [ax,ay]=pts[j],[bx,by]=pts[i];
   const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy||1; let t=((x-ax)*dx+(y-ay)*dy)/L; t=Math.max(0,Math.min(1,t)); const qx=ax+t*dx,qy=ay+t*dy,d=Math.hypot(x-qx,y-qy);
   if(d<bd){bd=d;best=[qx,qy];} } return best; }
@@ -189,7 +193,7 @@ function groundAt(x,y){
   const cx=Math.floor(x/CELL), cy=Math.floor(y/CELL); let best=null,bd=1e9;
   for(let r=0;r<=6 && !best;r++) for(let i=-r;i<=r;i++) for(let j=-r;j<=r;j++){ if(Math.max(Math.abs(i),Math.abs(j))!==r) continue;
     const l=GRID.get(ck(cx+i,cy+j)); if(!l) continue;
-    for(const b of l){ const d=Math.hypot(Math.max(b.x0-x,0,x-b.x1),Math.max(b.y0-y,0,y-b.y1)); if(d<bd){bd=d;best=b;} } }
+    for(const b of l){ if(b.tree) continue; const d=Math.hypot(Math.max(b.x0-x,0,x-b.x1),Math.max(b.y0-y,0,y-b.y1)); if(d<bd){bd=d;best=b;} } }
   return best?best.base:38;
 }
 function bboxOf(pts){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const [x,y] of pts){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; } return {x0,y0,x1,y1}; }
@@ -228,12 +232,21 @@ function addTile(T, data){
     const pts=[]; let x=st.l[0], y=st.l[1]; pts.push([ox+x/10, oy+y/10]);
     for(let i=2;i<st.l.length;i+=2){ x+=st.l[i]; y+=st.l[i+1]; pts.push([ox+x/10, oy+y/10]); }
     STREETS.push({n:st.n, pts, ...bboxOf(pts)}); }
-  Object.assign(T, box, {b:list, state:'ready'});
+  const trees=[], t=data.t||[];
+  for(let i=0;i+2<t.length;i+=3){
+    const x=ox+t[i]/10, y=oy+t[i+1]/10, code=t[i+2], ev=code>=100, hc=Math.floor(code%100/10), cc=code%10;
+    const h=TREE_H[hc]||8, r=(TREE_C[cc]||5)/2, zb=ev?Math.max(1,.15*h):Math.max(2,.35*h);
+    const tr={tree:true, x, y, r, h, zb, ev, g:groundAt(x,y), seen:0, x0:x-r, y0:y-r, x1:x+r, y1:y+r};
+    gridCells(tr, k=>{ let l=GRID.get(k); if(!l){ l=[]; GRID.set(k,l); } l.push(tr); });
+    if(tr.g+h>MAXROOF) MAXROOF=tr.g+h;
+    trees.push(tr);
+  }
+  Object.assign(T, box, {b:list, trees, state:'ready'});
 }
 function removeTile(k){
   const T=TILES.get(k); TILES.delete(k); if(!T||T.state!=='ready') return;
-  const gone=new Set(T.b);
-  for(const b of T.b) gridCells(b, c=>{ const l=GRID.get(c); if(!l) return; const n=l.filter(x=>!gone.has(x)); n.length?GRID.set(c,n):GRID.delete(c); });
+  const gone=new Set([...T.b, ...T.trees]);
+  for(const b of gone) gridCells(b, c=>{ const l=GRID.get(c); if(!l) return; const n=l.filter(x=>!gone.has(x)); n.length?GRID.set(c,n):GRID.delete(c); });
   // terraces that relied on this tile get prepared again when it comes back (their day rows stay valid)
   for(const t of TERRACES) if(t.ready && t.x>T.x0-MAXREACH && t.x<T.x1+MAXREACH && t.y>T.y0-MAXREACH && t.y<T.y1+MAXREACH) t.ready=false;
 }
@@ -268,7 +281,22 @@ function sunPos(date, lat, lng){
 }
 
 /* ---------- shadow test: walk grid cells along the ray toward the sun ---------- */
+// crown = cylinder (radius r) from its base up to its middle, with a half-ellipsoid dome on top:
+// flat underneath like a real canopy, so standing under a tree with the sun high is shade
+function treeBlocks(T,px,py,dx,dy,tanA,eye){
+  if(!T.ev && !LEAVES) return false;
+  const zb=T.g+T.zb, zt=T.g+T.h; if(zt<=eye) return false;
+  const zc=(zt+zb)/2, c=(zt-zb)/2, r2=T.r*T.r, ux=px-T.x, uy=py-T.y, ud=ux*dx+uy*dy, uu=ux*ux+uy*uy;
+  const q=ud*ud-(uu-r2); if(q<0) return false;            // the ray never passes over the crown
+  const t1=Math.max(0,-ud-Math.sqrt(q)), t2=-ud+Math.sqrt(q); if(t2<=0.05) return false;
+  if(eye+t1*tanA<=zc && eye+t2*tanA>=zb) return true;     // through the lower (cylinder) part
+  const ia=1/r2, ic=1/(c*c), uz=eye-zc;                    // through the dome
+  const A=ia+tanA*tanA*ic, B=2*(ud*ia+uz*tanA*ic), C=uu*ia+uz*uz*ic-1, D=B*B-4*A*C;
+  if(D<0) return false;
+  const s2=(-B+Math.sqrt(D))/(2*A); return s2>0.05 && eye+s2*tanA>=zc;
+}
 function blocks(b,px,py,dx,dy,tanA,eye){
+  if (b.tree) return treeBlocks(b,px,py,dx,dy,tanA,eye);
   const rel = b.roof - eye; if (rel <= 0) return false;
   const reach = rel/tanA;
   if (px < b.x0-reach || px > b.x1+reach || py < b.y0-reach || py > b.y1+reach) return false;
@@ -287,7 +315,7 @@ function litPoint(px,py,g,sun){
   const dx=Math.sin(sun.az), dy=Math.cos(sun.az), tanA=Math.tan(sun.alt), eye=g+EYE;
   const maxT = Math.min(MAXREACH, (MAXROOF-eye)/tanA);
   if (maxT <= 0) return true;
-  if (++stamp > 2e9){ stamp=1; for(const T of TILES.values()) for(const b of T.b||[]) b.seen=0; }
+  if (++stamp > 2e9){ stamp=1; for(const T of TILES.values()) for(const b of [...(T.b||[]), ...(T.trees||[])]) b.seen=0; }
   let cx=Math.floor(px/CELL), cy=Math.floor(py/CELL);
   const sX=dx>0?1:-1, sY=dy>0?1:-1;
   const tdX = dx!==0 ? CELL/Math.abs(dx) : Infinity, tdY = dy!==0 ? CELL/Math.abs(dy) : Infinity;
@@ -331,7 +359,7 @@ function computeDay(){
   const steps=[]; let rise=null,set=null;
   for (let m=240;m<=1320;m+=10){ const s=sunPos(dateAt(m),LAT0,LON0); steps.push({m,s}); if(s.alt>0&&rise===null) rise=m; if(s.alt>0) set=m; }
   if (rise!==null){ for(let m=rise-10;m<=rise;m++){ if(sunPos(dateAt(m),LAT0,LON0).alt>0){rise=m;break;} } for(let m=set;m<=set+10;m++){ if(sunPos(dateAt(m),LAT0,LON0).alt<=0){set=m;break;} } }
-  dayCache = {steps, rise, set, fr:new Map()};
+  dayCache = {steps, rise, set, fr:new Map()}; LEAVES = inLeaf(day);
   queue.length=0; enqueue(TERRACES.filter(t=>t.ready));
 }
 const stepIdx = m => Math.max(0,Math.min(dayCache.steps.length-1,Math.round((m-240)/10)));
@@ -351,7 +379,7 @@ function statusFor(t, m){
 const cv=$('map'), ctx=cv.getContext('2d'), wrap=$('mapwrap');
 const off=document.createElement('canvas'), octx=off.getContext('2d');
 let view={cx:0, cy:0, s:0.6}, W=0, H=0, DPR=1, colors={};
-function readColors(){ const cs=getComputedStyle(document.documentElement); for(const k of ['yolk','street','building','building-tall','shade','mint','pink','ink','muted','card','paper','land','water']) colors[k]=cs.getPropertyValue('--'+k).trim(); }
+function readColors(){ const cs=getComputedStyle(document.documentElement); for(const k of ['yolk','street','building','building-tall','shade','mint','pink','ink','muted','card','paper','land','water','tree']) colors[k]=cs.getPropertyValue('--'+k).trim(); }
 function resize(){ const r=wrap.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1); W=r.width; H=r.height;
   for(const c of [cv,off]){ c.width=Math.round(W*DPR); c.height=Math.round(H*DPR); } draw(); viewChanged(); }
 const sx = x => W/2 + (x-view.cx)*view.s, sy = y => H/2 - (y-view.cy)*view.s;
@@ -378,6 +406,15 @@ function drawStreetLabels(v){
     placed.push({n:s.n,X,Y});
     ctx.save(); ctx.translate(X,Y); ctx.rotate(a); ctx.globalAlpha=.85; ctx.fillText(label,0,0); ctx.restore();
   }
+}
+function drawTrees(v){
+  ctx.fillStyle=colors.tree; ctx.strokeStyle=colors.tree;
+  for(const T of tilesIn(v)) for(const t of T.trees){ if(!meets(t,v)) continue; const R=t.r*view.s; if(R<0.7) continue;
+    ctx.beginPath(); ctx.arc(sx(t.x),sy(t.y),R,0,7);
+    if(t.ev||LEAVES){ ctx.globalAlpha=.92; ctx.fill(); }
+    else { ctx.globalAlpha=.6; ctx.lineWidth=Math.max(1,Math.min(2,R/4)); ctx.stroke(); }   // bare in winter: sun gets through
+  }
+  ctx.globalAlpha=1;
 }
 function drawWater(v){
   ctx.fillStyle=colors.water;
@@ -410,12 +447,21 @@ function draw(){
           octx.moveTo(sx(q[0]),sy(q[1])); octx.lineTo(sx(q[2]),sy(q[3])); octx.lineTo(sx(q[4]),sy(q[5])); octx.lineTo(sx(q[6]),sy(q[7])); octx.closePath(); }
         octx.fill('nonzero');
       }
+      // a crown (ellipsoid) casts an ellipse: as wide as the crown, stretched along the sun's direction
+      const ang=Math.atan2(-dy,dx);
+      for(const T of tilesIn(viewRect(MAXREACH))) for(const t of T.trees){ if(!t.ev && !LEAVES) continue;
+        const c=(t.h-t.zb)/2, d=Math.min(MAXREACH,(t.zb+c)/tanA), d0=Math.min(MAXREACH,t.zb/tanA), X=sx(t.x+dx*d), Y=sy(t.y+dy*d), a=t.r*view.s, maj=Math.min(MAXREACH,Math.hypot(t.r,c/tanA))*view.s;
+        if(X+maj<0||X-maj>W||Y+maj<0||Y-maj>H) continue;
+        octx.beginPath(); octx.ellipse(X,Y,maj,a,ang,0,7); octx.fill();       // the dome
+        octx.beginPath(); octx.moveTo(sx(t.x+dx*d0),sy(t.y+dy*d0)); octx.lineTo(X,Y);   // the flat underside
+        octx.lineWidth=2*a; octx.lineCap='round'; octx.strokeStyle=colors.shade; octx.stroke(); }
       ctx.drawImage(off,0,0,W,H);
     } else { ctx.globalAlpha=.9; ctx.fillStyle=colors.shade; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; }
   }
   drawWater(v);
   if (near){
     for(const T of tilesIn(v)) for(const b of T.b){ if(!meets(b,v)) continue; ctx.beginPath(); addRing(ctx,b.pts,0,0); ctx.fillStyle = b.h>18?colors['building-tall']:colors['building']; ctx.fill(); if(view.s>1.6){ ctx.lineWidth=.8; ctx.strokeStyle=colors.ink; ctx.globalAlpha=.22; ctx.stroke(); ctx.globalAlpha=1; } }
+    drawTrees(v);
     drawStreetLabels(v);
   }
   // terraces
