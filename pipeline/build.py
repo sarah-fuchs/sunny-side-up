@@ -18,6 +18,7 @@ Usage:
 """
 import argparse, json, math, os, re, sys, time, unicodedata
 import urllib.error, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -662,6 +663,7 @@ def write_city(fetch_water=True):
 # empty, so a run that stopped half way can carry on with --tiles.
 
 TILE_M = 1000
+TILE_WORKERS = 2  # tiles fetched at the same time; kept low to stay polite with the city server
 CITY = Proj(*CITY_CENTER)
 TILES_DIR = "tiles"
 
@@ -779,6 +781,7 @@ def build_tiles(redo=False, max_minutes=280):
                        "tiles": dict(sorted(tiles.items())), "empty": sorted(empty)}, f, separators=(",", ":"))
 
     todo = [(ix, iy) for ix, iy in tile_range() if f"{ix}_{iy}" not in tiles and f"{ix}_{iy}" not in empty]
+    todo.sort(key=lambda k: (k[0] + .5) ** 2 + (k[1] + .5) ** 2)  # city centre first, outskirts last
     log(f"Tiles: {len(todo)} to fetch ({len(tiles)} done, {len(empty)} empty)")
     if not todo:
         save()
@@ -792,14 +795,24 @@ def build_tiles(redo=False, max_minutes=280):
                 sgrid[(ix, iy)].append(s)
 
     t_start, done, failed, unreachable, first_logged = time.time(), [], [], 0, False
+    # fetch TILE_WORKERS tiles at a time (the server takes ~45 s per tile); results are handled in order
+    pool = ThreadPoolExecutor(max_workers=TILE_WORKERS)
+    ahead = {}
+
+    def fetch(i):
+        if i < len(todo) and i not in ahead:
+            ahead[i] = pool.submit(fetch_tile_buildings, *todo[i])
+
     for n, (ix, iy) in enumerate(todo):
+        for i in range(n, n + TILE_WORKERS):
+            fetch(i)
         if time.time() - t_start > max_minutes * 60:
             annotate("warning", "Tiles: time is up", f"Stopped after {len(done)} tiles; {len(todo) - n} left. Run again with 'tiles' to carry on.")
             failed += [f"{a}_{b}" for a, b in todo[n:]]
             break
         key = f"{ix}_{iy}"
         try:
-            b = fetch_tile_buildings(ix, iy)
+            b = ahead.pop(n).result()
             unreachable = 0
         except Exception as e:  # noqa: BLE001
             log(f"Tile {key} FAILED: {e}")
@@ -837,6 +850,7 @@ def build_tiles(redo=False, max_minutes=280):
         if b:
             log(f"Tile {key}: {len(b)} buildings, {len(s)} streets ({os.path.getsize(path) / 1e3:.0f} kB) [{n + 1}/{len(todo)}]")
         save()
+    pool.shutdown(wait=False, cancel_futures=True)
     save()
     total = sum(tiles.values())
     annotate("notice", "Tiles", f"Fetched {len(done)} tiles this run; {len(tiles)} tiles with {total} buildings in all; {len(failed)} not done.")

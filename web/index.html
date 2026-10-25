@@ -256,7 +256,7 @@ function removeTile(k){
   // terraces that relied on this tile get prepared again when it comes back (their day rows stay valid)
   for(const t of TERRACES) if(t.ready && t.x>T.x0-MAXREACH && t.x<T.x1+MAXREACH && t.y>T.y0-MAXREACH && t.y<T.y1+MAXREACH) t.ready=false;
 }
-const tileState = k => !(k in TILEIDX.tiles) ? 'ready' : (TILES.get(k)||{}).state;   // no file = no buildings there
+const tileState = k => (k in TILEIDX.tiles) ? (TILES.get(k)||{}).state : TILEIDX.emptySet.has(k) ? 'ready' : 'unknown';   // not fetched yet: wait
 function tilesReadyAround(x,y){ const T=TILEIDX.size;
   for(let ix=Math.floor((x-MAXREACH)/T);ix<=Math.floor((x+MAXREACH)/T);ix++) for(let iy=Math.floor((y-MAXREACH)/T);iy<=Math.floor((y+MAXREACH)/T);iy++)
     if(tileState(ix+'_'+iy)!=='ready') return false;
@@ -659,7 +659,7 @@ async function init(){
   try{
     const [r1,r2,r3]=await Promise.all([fetch(`${DATA}index.json`),fetch(`${DATA}city.json`),fetch(`${DATA}tiles.json`)]);
     if(!r1.ok||!r2.ok||!r3.ok) throw new Error('missing');
-    [index, city, TILEIDX]=await Promise.all([r1.json(), r2.json(), r3.json()]);
+    [index, city, TILEIDX]=await Promise.all([r1.json(), r2.json(), r3.json()]); TILEIDX.emptySet=new Set(TILEIDX.empty||[]);
   }catch(e){ showNotice("Couldn't load the map data. The data may not be built yet.",0); return; }
   DISTRICTS = index.districts.map(d=>{ const o={...d};
     if(d.bbox){ const [a,b]=toXY(d.bbox[0],d.bbox[1]), [c,e]=toXY(d.bbox[2],d.bbox[3]); o.bb={x0:a,y0:b,x1:c,y1:e}; o.c=[(a+c)/2,(b+e)/2]; }
