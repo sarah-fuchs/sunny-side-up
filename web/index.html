@@ -4,158 +4,140 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sunny Side Up</title>
-<meta name="theme-color" content="#E4F7EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#EEF4F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-17 -17 34 34'%3E%3Cpath d='M16.6 0.0 L16.3 3.7 L14.1 6.8 L11.3 9.0 L8.7 10.9 L6.0 12.5 L3.0 13.2 L0.0 12.9 L-2.9 12.7 L-6.2 13.0 L-10.2 12.8 L-13.6 10.8 L-14.8 7.1 L-13.8 3.2 L-12.4 0.0 L-12.0 -2.7 L-12.1 -5.8 L-11.4 -9.1 L-9.4 -11.7 L-6.5 -13.6 L-3.4 -15.1 L-0.0 -16.1 L3.6 -15.6 L6.3 -13.2 L7.9 -9.9 L9.1 -7.3 L11.3 -5.5 L14.4 -3.3Z' fill='%23fff' stroke='%232B2B2B' stroke-width='2.5'/%3E%3Ccircle cx='1' cy='-1' r='7' fill='%23FFA51F' stroke='%232B2B2B' stroke-width='2.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:ital,wght@0,400;0,500;0,700;0,800;1,500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
-/* Freibad poster: mint page, lemon sunlight, mint shade, pink buildings, indigo ink outlines with flat sticker shadows */
+/* Calm and simple, after drip: flat white surfaces on a soft mint-grey page, one accent (yolk orange), the egg as logo. */
 :root{
-  --paper:#E4F7EF; --card:#FFFFFF; --ink:#2B2B2B; --muted:#62646A; --hair:rgba(43,43,43,.16);
-  --yellow:#FFE347; --yolk:#FFA51F; --yellow-ink:#5C4700; --mint:#8FEACF; --mint-deep:#16A985; --pink:#FF5FAE; --pink-soft:#FFE0EF;
-  --street:#FFD84D; --shade:#B9B0EE; --building:#4A4A55; --building-tall:#36363F; --land:#EEF3EF; --water:#6EC3F0;
-  --shadow-a:1; --lift:4px 4px 0 var(--ink); --lift-s:3px 3px 0 var(--ink);
+  --paper:#EEF4F0; --card:#FFFFFF; --ink:#26262B; --muted:#6B6E75; --line:#E1E8E3;
+  --yolk:#FFA51F; --yolk-ink:#9A5800; --mint:#8FEACF; --pink:#FF5FAE;
+  --street:#FFD84D; --shade:#B9B0EE; --building:#4A4A55; --building-tall:#36363F; --land:#E6ECE8; --water:#6EC3F0;
   --display:"Bagel Fat One", "Cooper Black", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --paper:#18181A; --card:#242427; --ink:#F4F4F1; --muted:#B4B4AE; --hair:rgba(244,244,241,.18);
-  --yellow:#FFE347; --yolk:#FFAE2E; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
-  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#26262A; --water:#2F7FB0;
-  --shadow-a:1; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }}
+  --paper:#18181A; --card:#232326; --ink:#F2F2EF; --muted:#A9A9A4; --line:#313135;
+  --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8;
+  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0;
+  color-scheme:dark }}
 :root[data-theme="dark"]{
-  --paper:#18181A; --card:#242427; --ink:#F4F4F1; --muted:#B4B4AE; --hair:rgba(244,244,241,.18);
-  --yellow:#FFE347; --yolk:#FFAE2E; --yellow-ink:#FFE347; --mint:#5FD9B6; --mint-deep:#8FEACF; --pink:#FF6FB8; --pink-soft:#46303D;
-  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#26262A; --water:#2F7FB0;
-  --shadow-a:1; --lift:4px 4px 0 #000; --lift-s:3px 3px 0 #000; color-scheme:dark }
+  --paper:#18181A; --card:#232326; --ink:#F2F2EF; --muted:#A9A9A4; --line:#313135;
+  --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8;
+  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0;
+  color-scheme:dark }
 
 *{box-sizing:border-box}
 body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;margin:0;-webkit-font-smoothing:antialiased}
-.app{display:flex;flex-direction:column;max-width:1200px;margin:0 auto;gap:14px;
-  padding:14px max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px))}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--yolk);outline-offset:2px}
+.app{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px;
+  padding:10px max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px))}
 
-/* header: wordmark + live sun path */
-header{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title sun" "pick pick";gap:10px 14px;align-items:center}
-.title{grid-area:title;min-width:0}
-h1{font-family:var(--display);font-weight:400;font-size:clamp(2.1rem,9vw,3.1rem);line-height:.9;letter-spacing:-.01em;margin:0;color:var(--ink);
-  text-shadow:3px 3px 0 var(--pink);text-wrap:balance}
-.sub{font-size:.95rem;font-weight:500;color:var(--muted);margin-top:8px}
-.sunpath{grid-area:sun;width:150px;text-align:center}
-.sunpath svg{display:block;width:150px;height:auto;overflow:visible;margin-top:6px}
-.readout{font-size:.86rem;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
-.picker{grid-area:pick;justify-self:start;display:flex;align-items:center;gap:10px}
-.picker span{font-weight:700;font-size:.95rem}
-.picker select{font:700 1rem var(--body);color:var(--ink);background:var(--yellow);border:2.5px solid var(--ink);border-radius:999px;
-  padding:9px 40px 9px 16px;max-width:min(70vw,320px);box-shadow:var(--lift-s);appearance:none;-webkit-appearance:none;cursor:pointer;
-  background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);
-  background-position:calc(100% - 22px) 54%,calc(100% - 15px) 54%;background-size:7px 7px;background-repeat:no-repeat}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .picker select{color:#2B2B2B;background-image:linear-gradient(45deg,transparent 50%,#2B2B2B 50%),linear-gradient(135deg,#2B2B2B 50%,transparent 50%)} }
-:root[data-theme="dark"] .picker select{color:#2B2B2B}
+/* header: egg + name, district jump on the right */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px}
+.brand{display:flex;align-items:center;gap:8px;min-width:0}
+.brand svg{flex:none}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(1.15rem,5.4vw,1.45rem);line-height:1;margin:0;white-space:nowrap}
+.jump{position:relative;flex:none}
+.jump select{appearance:none;-webkit-appearance:none;border:0;background:var(--card);border-radius:999px;padding:8px 30px 8px 13px;font-weight:600;font-size:.88rem;cursor:pointer;width:7.6em}
+.jump::after{content:"";position:absolute;right:14px;top:50%;width:7px;height:7px;margin-top:-5px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);pointer-events:none}
 
-.main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
-.mapwrap{height:clamp(320px,56svh,580px)}
-@media (min-width:880px){ .main{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
-  .mapwrap{grid-row:1 / span 2;position:sticky;top:14px;height:min(740px,calc(100svh - 150px))} .controls{grid-column:2} .list{grid-column:2} }
-.mapwrap{position:relative;border-radius:26px;overflow:hidden;background:var(--land);border:2.5px solid var(--ink);box-shadow:var(--lift);min-height:0;touch-action:none}
+/* layout */
+.main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+.mapwrap{position:relative;height:clamp(300px,52svh,560px);border-radius:18px;overflow:hidden;background:var(--land);touch-action:none}
+@media (min-width:880px){ .main{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+  .mapwrap{grid-row:1 / span 2;position:sticky;top:12px;height:calc(100svh - 96px);max-height:760px} }
 canvas{display:block;width:100%;height:100%}
-.maptag{position:absolute;left:12px;bottom:12px;font-size:.78rem;font-weight:700;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:999px;padding:4px 11px;pointer-events:none}
-.compass{position:absolute;right:12px;top:12px;width:46px;height:46px;border-radius:50%;background:var(--yolk);border:2.5px solid var(--ink);display:grid;place-items:center;pointer-events:none;box-shadow:var(--lift-s)}
-.compass path{fill:#2B2B2B}
-.notice{position:absolute;left:12px;top:12px;right:70px;font-size:.88rem;font-weight:600;background:var(--pink-soft);border:2px solid var(--ink);border-radius:14px;padding:8px 11px;color:var(--ink)}
+.maptag{position:absolute;left:10px;bottom:10px;font-size:.8rem;font-weight:600;background:var(--card);border-radius:999px;padding:4px 10px;pointer-events:none;color:var(--muted)}
+.compass{position:absolute;right:10px;top:10px;width:36px;height:36px;border-radius:50%;background:var(--card);display:grid;place-items:center;pointer-events:none}
+.compass path{fill:var(--yolk)}
+.notice{position:absolute;left:10px;top:10px;right:56px;font-size:.88rem;font-weight:500;background:var(--card);border-radius:12px;padding:8px 11px}
 
-/* time controls */
-.controls{display:flex;flex-direction:column;gap:12px;background:var(--card);border:2.5px solid var(--ink);border-radius:26px;padding:14px 16px 12px;box-shadow:var(--lift)}
-.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.chip{font:700 .92rem var(--body);border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;min-height:40px}
-.chip[aria-pressed="true"]{background:var(--pink);color:#fff}
-input[type=date].chip{font-weight:600}
-.chip:active{transform:translate(1px,1px)}
-:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
-.timebig{font-family:var(--display);font-size:2.4rem;line-height:1;font-variant-numeric:tabular-nums;margin-left:auto;color:var(--ink)}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:34px;margin:0;background:transparent;cursor:pointer}
-input[type=range]::-webkit-slider-runnable-track{height:14px;border-radius:999px;border:2px solid var(--ink);background:linear-gradient(90deg,var(--mint),var(--yolk) 50%,var(--mint))}
-input[type=range]::-moz-range-track{height:10px;border-radius:999px;border:2px solid var(--ink);background:linear-gradient(90deg,var(--mint),var(--yolk) 50%,var(--mint))}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-10px;border-radius:50%;background:var(--pink);border:3px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
-input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--pink);border:3px solid var(--ink)}
-.scale{display:flex;justify-content:space-between;font-size:.82rem;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:-4px}
+/* time */
+.time{background:var(--card);border-radius:18px;padding:12px 14px 10px}
+.row{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.seg{border:0;background:transparent;border-radius:999px;padding:7px 12px;font-weight:600;font-size:.92rem;cursor:pointer;color:var(--muted)}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.datebtn{position:relative;display:inline-flex;align-items:center;gap:5px;padding:7px 10px}
+.datebtn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;cursor:pointer}
+.datebtn[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.timebig{font-weight:700;font-size:1.45rem;color:var(--ink);line-height:1}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:32px;margin:6px 0 0;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--line)}
+input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:50%;background:var(--yolk);border:3px solid var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--yolk);border:3px solid var(--card)}
+.scale{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:2px}
+.scale span:first-child,.scale span:last-child{min-width:3.5em}
+.scale span:last-child{text-align:right}
 
-/* terrace list */
-.list{display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
-.listhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:2px 4px 0}
-.listhead b{font-family:var(--display);font-weight:400;font-size:1.45rem;line-height:1.1}
-.listhead span{font-size:.9rem;font-weight:600;color:var(--muted)}
-.item{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;
-  background:var(--card);border:2px solid var(--ink);border-left-width:12px;border-left-color:var(--mint);border-radius:18px;
-  padding:11px 14px 12px 14px;cursor:pointer;text-align:left;color:inherit;font:inherit;width:100%}
-.item.sun{border-left-color:var(--yolk)}
-.item.part{border-left-color:var(--yolk);border-image:none}
-.item.part::before{content:"";position:absolute;left:-12px;top:50%;bottom:-2px;width:12px;background:var(--mint);border-bottom-left-radius:16px}
-.item.sel{box-shadow:var(--lift);background:var(--pink-soft)}
-.name{font-weight:800;font-size:1.05rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.addr{grid-column:1;font-size:.88rem;color:var(--muted);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.status{font-weight:700;font-size:.9rem;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}
-.status.sun{color:#2B2B2B;background:var(--yolk);border-radius:999px;padding:1px 9px;border:1.5px solid var(--ink)}
-:root[data-theme="dark"] .status.sun{color:#2B2B2B}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .status.sun{color:#2B2B2B} }
-.strip{grid-column:1 / span 2;position:relative;height:10px;border-radius:999px;background:var(--paper);border:1.5px solid var(--ink);overflow:hidden;margin-top:8px}
+/* list */
+.listwrap{display:flex;flex-direction:column;gap:8px}
+.area{font-size:.85rem;color:var(--muted);padding:0 4px}
+.listhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:0 4px}
+.listhead b{font-size:1.15rem;font-weight:700}
+.listhead span{font-size:.85rem;color:var(--muted);white-space:nowrap}
+.rows{background:var(--card);border-radius:18px;overflow:hidden}
+.item{display:grid;grid-template-columns:12px minmax(0,1fr) auto;column-gap:12px;align-items:center;width:100%;text-align:left;border:0;background:transparent;padding:12px 14px;cursor:pointer;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--mint)}
+.item.sun .dot{background:var(--yolk)}
+.item.part .dot{background:conic-gradient(var(--yolk) 0 50%,var(--mint) 0)}
+.who{min-width:0}
+.name{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.addr{display:block;font-size:.85rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status{font-size:.88rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.item.sun .status{color:var(--yolk-ink);font-weight:600}
+.more-info{grid-column:2 / span 2;display:none;margin-top:10px}
+.item.sel{background:color-mix(in srgb,var(--yolk) 9%,var(--card))}
+.item.sel .more-info{display:block}
+.strip{display:block;position:relative;height:6px;border-radius:999px;background:var(--line);overflow:hidden}
 .strip canvas{position:absolute;inset:0}
-.meta{grid-column:1 / span 2;font-size:.86rem;color:var(--muted);margin-top:4px}
-.meta em{font-style:normal;font-weight:700;color:var(--ink)}
-.more{align-self:center;margin-top:4px;background:var(--yellow);box-shadow:var(--lift-s)}
-:root[data-theme="dark"] .more{color:#2B2B2B}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .more{color:#2B2B2B} }
-.hint{margin:0;padding:2px 4px;font-size:.95rem;color:var(--muted);max-width:52ch}
-footer{font-size:.82rem;color:var(--muted);line-height:1.5;max-width:68ch}
+.meta{display:block;font-size:.85rem;color:var(--muted);margin-top:6px}
+.more{align-self:center;border:0;background:var(--card);border-radius:999px;padding:9px 16px;font-weight:600;cursor:pointer}
+.hint{margin:0;padding:12px 14px;background:var(--card);border-radius:18px;color:var(--muted);font-size:.95rem}
+footer{font-size:.78rem;color:var(--muted);line-height:1.5;max-width:68ch;padding:0 4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-@media (min-width:880px){ header{grid-template-columns:auto 1fr auto;grid-template-areas:"title pick sun"} .picker{justify-self:end} }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="title">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="-18 -18 36 36" aria-hidden="true"><path d="M16.6 0.0 L16.3 3.7 L14.1 6.8 L11.3 9.0 L8.7 10.9 L6.0 12.5 L3.0 13.2 L0.0 12.9 L-2.9 12.7 L-6.2 13.0 L-10.2 12.8 L-13.6 10.8 L-14.8 7.1 L-13.8 3.2 L-12.4 0.0 L-12.0 -2.7 L-12.1 -5.8 L-11.4 -9.1 L-9.4 -11.7 L-6.5 -13.6 L-3.4 -15.1 L-0.0 -16.1 L3.6 -15.6 L6.3 -13.2 L7.9 -9.9 L9.1 -7.3 L11.3 -5.5 L14.4 -3.3Z" fill="#fff" stroke="#2B2B2B" stroke-width="2.2" stroke-linejoin="round"/><circle cx="1" cy="-1" r="7" fill="var(--yolk)" stroke="#2B2B2B" stroke-width="2.2"/><ellipse cx="-1.4" cy="-3.4" rx="2.2" ry="1.4" fill="#fff" opacity=".9"/></svg>
       <h1>Sunny Side Up</h1>
-      <div class="sub" id="sub">Schanigärten in the sun, Wien</div>
     </div>
-    <div class="sunpath" aria-hidden="true">
-      <svg viewBox="0 -14 150 92" id="sunsvg">
-        <path d="M10 66 A65 56 0 0 1 140 66" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="2 6" stroke-linecap="round"/>
-        <line x1="2" y1="66" x2="148" y2="66" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>
-        <g id="egg" transform="translate(75 10)"><path d="M17.2 0.0 L16.9 3.9 L14.6 7.0 L11.7 9.3 L9.0 11.3 L6.2 13.0 L3.1 13.7 L0.0 13.4 L-3.0 13.1 L-6.5 13.4 L-10.6 13.2 L-14.0 11.2 L-15.3 7.4 L-14.3 3.3 L-12.8 0.0 L-12.4 -2.8 L-12.5 -6.0 L-11.8 -9.4 L-9.7 -12.1 L-6.8 -14.1 L-3.6 -15.6 L-0.0 -16.6 L3.7 -16.1 L6.6 -13.6 L8.2 -10.2 L9.4 -7.5 L11.7 -5.6 L14.9 -3.4Z" fill="#FFFFFF" stroke="#2B2B2B" stroke-width="2.5" stroke-linejoin="round"/><circle cx="1" cy="-1" r="7.5" fill="var(--yolk)" stroke="#2B2B2B" stroke-width="2.5"/><ellipse cx="-1.6" cy="-3.6" rx="2.4" ry="1.5" fill="#FFFFFF" opacity=".9"/></g>
-        <text id="sunrise" x="10" y="78" font-size="10" font-weight="700" text-anchor="middle" fill="var(--muted)" font-family="Figtree,sans-serif"></text>
-        <text id="sunset" x="140" y="78" font-size="10" font-weight="700" text-anchor="middle" fill="var(--muted)" font-family="Figtree,sans-serif"></text>
-      </svg>
-      <div class="readout" id="readout">–</div>
-    </div>
-    <label class="picker"><span>Jump to</span>
-      <select id="district" aria-label="Jump to a district"></select>
-    </label>
+    <label class="jump"><select id="district" aria-label="Jump to a district"></select></label>
   </header>
 
   <div class="main">
     <div class="mapwrap" id="mapwrap">
       <canvas id="map" aria-label="Map with building shadows and terraces"></canvas>
-      <div class="compass" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30"><path d="M15 3 L19 15 L15 13 L11 15 Z" fill="var(--sun)"/><path d="M15 27 L11 15 L15 17 L19 15 Z" fill="var(--muted)"/></svg></div>
+      <div class="compass" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 30 30"><path d="M15 3 L19 15 L15 13 L11 15 Z"/><path d="M15 27 L11 15 L15 17 L19 15 Z" opacity=".35"/></svg></div>
       <div class="notice" id="notice" hidden></div>
       <div class="maptag" id="maptag">Loading …</div>
     </div>
 
-    <div class="controls">
+    <div class="time">
       <div class="row">
-        <button class="chip" id="btnNow" type="button">Now</button>
-        <button class="chip" id="btnToday" type="button" aria-pressed="false">Today</button>
-        <button class="chip" id="btnTomorrow" type="button" aria-pressed="false">Tomorrow</button>
-        <input type="date" id="date" class="chip" aria-label="Pick a date">
-        <div class="timebig" id="timebig">--:--</div>
+        <button class="seg" id="btnNow" type="button">Now</button>
+        <button class="seg" id="btnToday" type="button" aria-pressed="false">Today</button>
+        <button class="seg" id="btnTomorrow" type="button" aria-pressed="false">Tomorrow</button>
+        <span class="seg datebtn" id="dateBtn"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span id="dateLabel"></span><input type="date" id="date" aria-label="Pick a date"></span>
       </div>
       <input type="range" id="time" min="0" max="1439" step="5" aria-label="Time of day">
-      <div class="scale" id="scale"><span>sunrise</span><span>noon</span><span>sunset</span></div>
+      <div class="scale"><span id="riseLbl"></span><span class="timebig" id="timebig">--:--</span><span id="setLbl"></span></div>
     </div>
 
-    <div class="list" id="list" aria-live="polite"></div>
+    <div class="listwrap">
+      <div class="area" id="sub">Schanigärten in the sun, Wien</div>
+      <div class="list" id="list" aria-live="polite"></div>
+    </div>
   </div>
 
   <footer id="footer">Buildings and roof heights: Stadt Wien Baukörpermodell. Terraces: Stadt Wien approved Schanigärten. Venue names, streets and water © OpenStreetMap contributors; names may be out of date. Trees, awnings and umbrellas are not modelled.</footer>
@@ -335,7 +317,7 @@ function addRing(c,pts,ox,oy){ for(let i=0;i<pts.length;i++){ const X=sx(pts[i][
 
 function drawStreetLabels(v){
   if(view.s<0.6||!STREETS.length) return;
-  ctx.fillStyle=colors.ink; ctx.font=`italic 500 ${Math.max(10,Math.min(13,view.s*4.2))}px Figtree,system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle=colors.ink; ctx.font=`500 ${Math.max(10,Math.min(13,view.s*4.2))}px Figtree,system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
   const placed=[];
   for(const s of STREETS){
     if(!meets(s,v)) continue;
@@ -360,7 +342,7 @@ function drawWater(v){
   for(const r of RIVERS){ if(!meets(r,v)) continue; ctx.beginPath(); r.pts.forEach(([x,y],i)=>i?ctx.lineTo(sx(x),sy(y)):ctx.moveTo(sx(x),sy(y))); ctx.stroke(); }
 }
 function drawDistrictNames(){
-  ctx.font=`800 ${view.s<0.04?12:14}px Figtree,system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font=`600 ${view.s<0.04?12:13}px Figtree,system-ui,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
   const placed=[];
   for(const d of [...DISTRICTS].sort((a,b)=>b.terraces-a.terraces)){ if(!d.c) continue; const X=sx(d.c[0]), Y=sy(d.c[1]);
     const w=ctx.measureText(d.name).width+8, h=18; if(placed.some(p=>Math.abs(p.X-X)<(p.w+w)/2&&Math.abs(p.Y-Y)<h)) continue; placed.push({X,Y,w});
@@ -399,23 +381,23 @@ function draw(){
     const fr=dayCache.fr.get(t.gid), known = near ? t.ready : !!fr;
     const f = !known ? null : near ? litFraction(t,sun) : (sun.alt>0 ? fr[i0] : 0);
     const X=sx(t.x), Y=sy(t.y);
-    if(selected===t.gid){ ctx.beginPath(); ctx.arc(X,Y,R+5,0,7); ctx.strokeStyle=colors.pink; ctx.lineWidth=4; ctx.stroke(); }
+    if(selected===t.gid){ ctx.beginPath(); ctx.arc(X,Y,R+5,0,7); ctx.strokeStyle=colors.ink; ctx.lineWidth=3; ctx.stroke(); }
     if(tiny){ ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.globalAlpha=f===null?.45:1; ctx.fillStyle=f===null?colors.ink:f>=.5?colors.yolk:colors.mint; ctx.fill(); ctx.globalAlpha=1; continue; }
-    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.fillStyle = f===null?colors.card : f>=.5?colors.yolk:colors.mint; ctx.fill();
+    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.fillStyle = f===null?colors.muted : f>=.5?colors.yolk:colors.mint; ctx.fill();
     if(f>0&&f<.5){ ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,R,-Math.PI/2,-Math.PI/2+f*2*Math.PI); ctx.closePath(); ctx.fillStyle=colors.yolk; ctx.fill(); }
-    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.lineWidth=near?2.5:1.5; ctx.strokeStyle='#2B2B2B'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(X,Y,R,0,7); ctx.lineWidth=near?2:1; ctx.strokeStyle=near?'#FFFFFF':colors.card; ctx.stroke();
     if(near && (selected===t.gid||(t.name&&view.s>0.9)||view.s>3.6)) labels.push({t,f:f||0,X,Y,R,sel:selected===t.gid});
   }
   if (!near && view.s<0.12) drawDistrictNames();
   labels.sort((a,b)=>b.sel-a.sel || b.f-a.f);
   const placed=vis.map(t=>{const X=sx(t.x),Y=sy(t.y);return {x:X-R,y:Y-R,w:2*R,h:2*R};}), hits=(r)=>placed.some(p=>r.x<p.x+p.w&&r.x+r.w>p.x&&r.y<p.y+p.h&&r.y+r.h>p.y);
-  for(const L of labels){ const sel=L.sel; ctx.font=`${sel?800:700} ${sel?13:12}px Figtree,system-ui,sans-serif`; ctx.textAlign='left'; ctx.textBaseline='middle';
+  for(const L of labels){ const sel=L.sel; ctx.font=`${sel?700:600} ${sel?13:12}px Figtree,system-ui,sans-serif`; ctx.textAlign='left'; ctx.textBaseline='middle';
     const label=L.t.name||L.t.addr, w=ctx.measureText(label).width+14, h=22, g=L.R+5;
     const opts=[[L.X+g,L.Y-h/2],[L.X-g-w,L.Y-h/2],[L.X-w/2,L.Y-g-h],[L.X-w/2,L.Y+g]];
     let spot=null; for(const [x,y] of opts){ const r={x,y,w,h}; const fits=x>=4&&y>=4&&x+w<=W-4&&y+h<=H-4; if(fits&&(sel||!hits(r))){ spot=r; break; } }
     if(!spot) continue; placed.push(spot);
-    ctx.beginPath(); ctx.roundRect(spot.x,spot.y,w,h,11); ctx.fillStyle=sel?colors.pink:colors.card; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle=colors.ink; ctx.stroke();
-    ctx.fillStyle=sel?'#fff':colors.ink; ctx.fillText(label,spot.x+7,spot.y+h/2+.5); }
+    ctx.beginPath(); ctx.roundRect(spot.x,spot.y,w,h,11); ctx.fillStyle=sel?colors.ink:colors.card; ctx.fill();
+    ctx.fillStyle=sel?colors.card:colors.ink; ctx.fillText(label,spot.x+7,spot.y+h/2+.5); }
   const rot = sun.alt>0 ? sun.az : null;
   document.querySelector('.compass svg').style.transform = rot===null?'':`rotate(${rot/RAD}deg)`;
   document.querySelector('.compass').style.opacity = rot===null?.4:1;
@@ -468,7 +450,7 @@ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 function renderStrip(c,fr){ const r=c.parentElement.getBoundingClientRect(); const w=Math.round(r.width*DPR),h=Math.round(r.height*DPR); if(!w) return; c.width=w; c.height=h; const x=c.getContext('2d');
   const a=dayCache.rise??360, z=dayCache.set??1080, span=z-a; x.clearRect(0,0,w,h);
   if(fr) fr.forEach((f,i)=>{ const m=dayCache.steps[i].m; if(m<a||m>z||f<=0) return; x.globalAlpha=f>=.5?1:.5; x.fillStyle=colors.yolk; x.fillRect((m-a)/span*w,0,Math.ceil(10/span*w)+1,h); });
-  x.globalAlpha=1; if(minute>=a&&minute<=z){ x.fillStyle=colors.pink; x.fillRect((minute-a)/span*w-1.5*DPR,0,3*DPR,h); } }
+  x.globalAlpha=1; if(minute>=a&&minute<=z){ x.fillStyle=colors.ink; x.fillRect((minute-a)/span*w-1*DPR,0,2*DPR,h); } }
 function listOrder(){
   const v=viewRect();
   const rows=TERRACES.filter(t=>t.ready&&t.x>=v.x0&&t.x<=v.x1&&t.y>=v.y0&&t.y<=v.y1).map(t=>{ const s=statusFor(t,minute); return {t,s,total:s.fr?s.fr.filter(f=>f>=.5).length*10:-1}; });
@@ -481,57 +463,55 @@ function renderList(){
   const list=$('list');
   if(view.s<NEAR){
     const v=viewRect(), n=TERRACES.filter(t=>t.x>=v.x0&&t.x<=v.x1&&t.y>=v.y0&&t.y<=v.y1).length;
-    list.innerHTML=`<div class="listhead"><b>Zoom in to see the sun</b><span>${n} terraces on the map</span></div><p class="hint">Pinch or double-tap the map, tap a dot, or jump to a district. Sun and shade show up once you're down to a few streets.</p>`;
+    list.innerHTML=`<div class="listwrap"><div class="listhead"><b>Zoom in to see the sun</b><span>${n} terraces</span></div><p class="hint">Pinch the map, tap a dot, or jump to a district.</p></div>`;
     return;
   }
   const rows=listOrder();
   if(!rows.length){
     const loading=[...CHUNKS.values()].includes('loading');
-    list.innerHTML=`<div class="listhead"><b>${loading?'Loading …':'No terraces here'}</b><span>${fmt(minute)}</span></div>${loading?'':'<p class="hint">Move the map to a street with cafés, or jump to a district.</p>'}`;
+    list.innerHTML=`<div class="listwrap"><div class="listhead"><b>${loading?'Loading …':'No terraces here'}</b></div>${loading?'':'<p class="hint">Move the map to a street with cafés, or jump to a district.</p>'}</div>`;
     return;
   }
   const sunny=rows.filter(x=>x.s.now>=.5).length, sunUp = sunPos(dateAt(minute),LAT0,LON0).alt>0;
   const pending=rows.filter(x=>!x.s.fr).length;
-  let html=`<div class="listhead"><b>${sunUp? (sunny? sunny+" of "+rows.length+" in the sun" : "All in the shade") : "Sun's down"}</b><span>${pending?'working out the day':fmt(minute)}</span></div>`;
+  let html=`<div class="listwrap"><div class="listhead"><b>${sunUp? (sunny? sunny+" of "+rows.length+" in the sun" : "All in the shade") : "Sun's down"}</b><span>${pending?'working out the day':''}</span></div><div class="rows">`;
   const shown=rows.slice(0,listLimit);
   for(const {t,s,total} of shown){ const cls=s.now>=.5?'sun':(s.now>0?'part':'');
-    const daytxt = total<0 ? 'Working it out' : total? dur(total)+' of sun this day' : 'No direct sun this day';
+    const daytxt = total<0 ? 'Working out the day' : total? dur(total)+' of sun this day' : 'No direct sun this day';
+    const st = sunUp ? s.text[0].toUpperCase()+s.text.slice(1) : (total>0? dur(total)+' sun' : total<0?'…':'No sun');
     html+=`<button class="item ${cls}${selected===t.gid?' sel':''}" data-id="${t.gid}" type="button">
-      <span class="name">${esc(t.name||t.addr)}</span>
-      <span class="status ${s.cls}">${sunUp?s.text:(total>0?Math.round(total/60*10)/10+' h sun':total<0?'…':'no sun')}</span>
-      ${t.name?`<span class="addr">${esc(t.addr)}</span>`:''}
-      <span class="strip"><canvas></canvas></span>
-      <span class="meta"><em>${daytxt}</em>, ${esc(t.kind)}, ${t.m2} m²${t.note?'. '+esc(t.note[0].toUpperCase()+t.note.slice(1)):''}</span>
+      <span class="dot"></span>
+      <span class="who"><span class="name">${esc(t.name||t.addr)}</span>${t.name?`<span class="addr">${esc(t.addr)}</span>`:''}</span>
+      <span class="status">${st}</span>
+      <span class="more-info"><span class="strip"><canvas></canvas></span><span class="meta">${daytxt}. ${esc(t.kind)}, ${t.m2} m²${t.note?'. '+esc(t.note[0].toUpperCase()+t.note.slice(1)):''}</span></span>
     </button>`; }
-  if(rows.length>shown.length) html+=`<button class="chip more" id="more" type="button">Show all ${rows.length} terraces</button>`;
+  html+=`</div>`;
+  if(rows.length>shown.length) html+=`<button class="more" id="more" type="button">Show all ${rows.length}</button>`;
+  html+=`</div>`;
   list.innerHTML=html;
-  list.querySelectorAll('.item').forEach((el,i)=>{ const t=shown[i].t; renderStrip(el.querySelector('canvas'),shown[i].s.fr);
-    el.addEventListener('click',()=>{ selected = selected===t.gid?null:t.gid; if(selected){ view.cx=t.x; view.cy=t.y; view.s=Math.max(view.s,3.4); viewChanged(); } renderList(); draw(); }); });
+  list.querySelectorAll('.item').forEach((el,i)=>{ const t=shown[i].t; if(selected===t.gid) renderStrip(el.querySelector('canvas'),shown[i].s.fr);
+    el.addEventListener('click',()=>{ selected = selected===t.gid?null:t.gid; if(selected){ view.cx=t.x; view.cy=t.y; view.s=Math.max(view.s,2.4); viewChanged(); } renderList(); draw(); }); });
   const more=$('more'); if(more) more.onclick=()=>{ listLimit=1e9; renderList(); };
 }
 
 /* ---------- where am I: nearest district for the subtitle ---------- */
 function updateArea(){
   if(!TERRACES.length) return;
-  if(view.s<0.06){ $('sub').textContent='Schanigärten in the sun, all of Wien'; return; }
+  if(view.s<0.06){ $('sub').textContent='All of Vienna'; return; }
   let best=null,bd=1e18; for(const t of TERRACES){ const d=(t.x-view.cx)**2+(t.y-view.cy)**2; if(d<bd){bd=d;best=t;} }
-  const d=DISTRICTS.find(x=>x.d===best.d); if(d) $('sub').textContent=`Schanigärten in the sun, around ${d.plz} ${d.name}`;
+  const d=DISTRICTS.find(x=>x.d===best.d); if(d) $('sub').textContent=`Around ${d.plz} ${d.name}`;
 }
 
 /* ---------- controls ---------- */
 function updateReadout(){
-  const s=sunPos(dateAt(minute),LAT0,LON0); const dir=['north','north-east','east','south-east','south','south-west','west','north-west'][Math.round(s.az/RAD/45)%8];
-  $('readout').textContent = s.alt>0 ? `${(s.alt/RAD).toFixed(0)}° high in the ${dir}` : `Below the horizon`;
-  const p=Math.max(0,Math.min(1,(minute-dayCache.rise)/((dayCache.set-dayCache.rise)||1))), th=Math.PI*(1-p), disc=$('egg');
-  disc.setAttribute('transform',`translate(${(75+65*Math.cos(th)).toFixed(1)} ${(66-56*Math.sin(th)).toFixed(1)}) scale(1.45) rotate(${(p*40-20).toFixed(0)})`);
-  disc.style.opacity = s.alt>0 ? 1 : .35;
-  $('sunrise').textContent=fmt(dayCache.rise); $('sunset').textContent=fmt(dayCache.set);
   $('timebig').textContent=fmt(minute);
   const today=new Date(); today.setHours(0,0,0,0); const diff=Math.round((day-today)/864e5);
   $('btnToday').setAttribute('aria-pressed',diff===0); $('btnTomorrow').setAttribute('aria-pressed',diff===1);
+  const other=diff!==0&&diff!==1; $('dateBtn').setAttribute('aria-pressed',other);
+  $('dateLabel').textContent = other ? day.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}) : '';
   $('date').value=`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`;
   const sl=$('time'); sl.min=Math.floor((dayCache.rise-30)/5)*5; sl.max=Math.ceil((dayCache.set+30)/5)*5; sl.value=minute;
-  $('scale').innerHTML=`<span>${fmt(dayCache.rise)}</span><span>${fmt(Math.round((dayCache.rise+dayCache.set)/2))}</span><span>${fmt(dayCache.set)}</span>`;
+  $('riseLbl').textContent=fmt(dayCache.rise); $('setLbl').textContent=fmt(dayCache.set);
 }
 function setDay(d){ day=new Date(d); day.setHours(0,0,0,0); computeDay(); }
 function refresh(){ updateReadout(); renderList(); draw(); }
@@ -569,7 +549,7 @@ async function init(){
     return o; });
   loadCity(city);
   const sel=$('district');
-  sel.innerHTML=`<option value="">Pick a district</option>`+DISTRICTS.map(x=>`<option value="${x.d}">${x.d}. ${esc(x.name)} · ${x.terraces}</option>`).join('');
+  sel.innerHTML=`<option value="">Districts</option>`+DISTRICTS.map(x=>`<option value="${x.d}">${x.d}. ${esc(x.name)} · ${x.terraces}</option>`).join('');
   sel.onchange=()=>{ const d=+sel.value; sel.value=''; if(d) jumpTo(d); };
   if(index.updated) $('footer').textContent+=` Data from ${index.updated}.`;
   goNow();

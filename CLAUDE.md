@@ -17,12 +17,14 @@ Personal web app for Sarah: **which Viennese Schanigärten (café/restaurant/bar
 
 ## Design (decided with Sarah)
 
-- Fried-egg theme ("sunny side up"): the sun is a fried egg on the header sun-path arc; map markers are plain circles: yolk orange when sunny, mint when shaded, mint with a yolk pie when partly sunny (egg-shaped markers were tried and dropped).
-- Map: dark grey buildings, solid lilac shadows (#B9B0EE, opaque — semi-transparent shade over yellow turned muddy brown), strong golden sunlit ground (#FFD84D). Sarah wants sun vs shade to be obvious at a glance.
-- Colours: mint page; bright mint / pink / yellow / yolk orange (#FFA51F) only on markers, buttons and tags. Neutral charcoal outlines (#2B2B2B), never dark blue.
+- **Simple and calm, inspired by the drip app** (decided 2026-10-25, replaced the louder "sticker" look): flat white surfaces on a soft mint-grey page, no thick outlines or offset shadows, one accent colour (yolk orange #FFA51F). Name stays "Sunny Side Up"; the fried egg stays as the logo/mascot (Sarah and others find it cute).
+- Header: egg logo + "Sunny Side Up" (Bagel Fat One, the only display-font use) and a compact "Districts" jump menu. No sun arc, no sun-angle readout.
+- Time card: Now / Today / Tomorrow / calendar icon (transparent native date input on top; shows the date when another day is picked); thin slider with orange thumb; sunrise · big time · sunset under it.
+- List: one white rounded panel with hairline rows: coloured dot (orange sun, mint shade, half/half partly), name + address, status on the right ("Sun until 14:40" in orange when sunny). Tapping a row opens its sun-timeline bar and details and centres the map.
+- Map: dark grey buildings, solid lilac shadows (#B9B0EE, opaque — semi-transparent shade over yellow turned muddy brown), strong golden sunlit ground (#FFD84D), blue water. Terrace dots with a thin white ring; plain white name pills, selected one dark.
 - Dark mode: neutral near-black (#18181A), not blue. Map: grey buildings, neutral dark shade (#2F2D33), golden mustard sun (#C9A531).
-- Fonts: Bagel Fat One (display), Figtree (everything else). No monospace, no all-caps labels.
-- Sticker look: thick outlines with flat offset shadows on map, controls and selected terrace.
+- Fonts: Figtree everywhere except the wordmark. No monospace, no all-caps labels. Never dark blue.
+- The Flutter app (`sarah-fuchs/sunny-side-up-app`, private) follows this same design: free, no account, no ads, no tracking, like drip.
 
 ## Layout
 
