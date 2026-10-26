@@ -15,7 +15,7 @@
 :root{
   --paper:#EEF4F0; --card:#FFFFFF; --ink:#26262B; --muted:#6B6E75; --line:#E1E8E3;
   --yolk:#FFA51F; --yolk-ink:#9A5800; --mint:#8FEACF; --pink:#FF5FAE; --yellow:#FFE347; --lift-s:3px 3px 0 var(--ink);
-  --street:#FFD84D; --shade:#B9B0EE; --building:#4A4A55; --building-tall:#36363F; --land:#E6ECE8; --water:#6EC3F0;
+  --street:#FFD84D; --shade:#B9B0EE; --building:#4A4A55; --building-tall:#36363F; --land:#E6ECE8; --water:#6EC3F0; --green-sun:#B6DB7C; --green-shade:#A3BDB5; --green-far:#CFE3C6;
   --display:"Bagel Fat One", "Cooper Black", Georgia, serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme:light;
@@ -23,12 +23,12 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#18181A; --card:#232326; --ink:#F2F2EF; --muted:#A9A9A4; --line:#313135;
   --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8; --yellow:#FFE347; --lift-s:3px 3px 0 #000;
-  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0;
+  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0; --green-sun:#7E9A3C; --green-shade:#2B3631; --green-far:#26302A;
   color-scheme:dark }}
 :root[data-theme="dark"]{
   --paper:#18181A; --card:#232326; --ink:#F2F2EF; --muted:#A9A9A4; --line:#313135;
   --yolk:#FFAE2E; --yolk-ink:#FFC56B; --mint:#5FD9B6; --pink:#FF6FB8; --yellow:#FFE347; --lift-s:3px 3px 0 #000;
-  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0;
+  --street:#C9A531; --shade:#2F2D33; --building:#6E6E7A; --building-tall:#5C5C67; --land:#202023; --water:#2F7FB0; --green-sun:#7E9A3C; --green-shade:#2B3631; --green-far:#26302A;
   color-scheme:dark }
 
 *{box-sizing:border-box}
@@ -112,6 +112,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .more{align-self:center;border:0;background:var(--card);border-radius:999px;padding:9px 16px;font-weight:600;cursor:pointer}
 .hint{margin:0;padding:12px 14px;background:var(--card);border-radius:18px;color:var(--muted);font-size:.95rem}
 footer{font-size:.78rem;color:var(--muted);line-height:1.5;max-width:68ch;padding:0 4px}
+footer a{color:inherit}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -161,7 +162,7 @@ footer{font-size:.78rem;color:var(--muted);line-height:1.5;max-width:68ch;paddin
     </div>
   </div>
 
-  <footer id="footer">Buildings and roof heights: Stadt Wien Baukörpermodell. Terraces: Stadt Wien approved Schanigärten. Venue names, streets and water © OpenStreetMap contributors; names may be out of date. Trees, awnings and umbrellas are not modelled.</footer>
+  <footer id="footer">Datenquelle: Stadt Wien – <a href="https://data.wien.gv.at">data.wien.gv.at</a> (Baukörpermodell, Schanigärten; <a href="https://creativecommons.org/licenses/by/4.0/deed.de">CC BY 4.0</a>), modified: merged, simplified, shadows computed. Venue names, streets, water and green areas © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL); names may be out of date. Trees, awnings and umbrellas are not modelled.</footer>
 </div>
 
 <script>
@@ -173,7 +174,7 @@ const LON0 = 16.3725, LAT0 = 48.2083, KX = Math.cos(LAT0*Math.PI/180)*111320, KY
 const toXY = (lon,lat) => [(lon-LON0)*KX, (lat-LAT0)*KY];
 const ck = (cx,cy) => (cx+50000)*100000 + (cy+50000);
 let GRID = new Map(), MAXROOF = 0, stamp = 0;   // GRID: 25 m cell -> buildings touching it
-let TERRACES = [], BYID = new Map(), STREETS = [], WATER = [], RIVERS = [], DISTRICTS = [];
+let TERRACES = [], BYID = new Map(), STREETS = [], WATER = [], RIVERS = [], DISTRICTS = [], GREEN = [];
 let TILEIDX = null;           // data/tiles.json: {size, tiles: {"ix_iy": buildings}}
 const TILES = new Map();      // "ix_iy" -> {state:'loading'|'ready', b:[buildings], x0,y0,x1,y1}
 const STREET_IDS = new Set();
@@ -351,7 +352,7 @@ function statusFor(t, m){
 const cv=$('map'), ctx=cv.getContext('2d'), wrap=$('mapwrap');
 const off=document.createElement('canvas'), octx=off.getContext('2d');
 let view={cx:0, cy:0, s:0.6}, W=0, H=0, DPR=1, colors={};
-function readColors(){ const cs=getComputedStyle(document.documentElement); for(const k of ['yolk','street','building','building-tall','shade','mint','pink','ink','muted','card','paper','land','water']) colors[k]=cs.getPropertyValue('--'+k).trim(); }
+function readColors(){ const cs=getComputedStyle(document.documentElement); for(const k of ['yolk','street','building','building-tall','shade','mint','pink','ink','muted','card','paper','land','water','green-sun','green-shade','green-far']) colors[k]=cs.getPropertyValue('--'+k).trim(); }
 function resize(){ const r=wrap.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1); W=r.width; H=r.height;
   for(const c of [cv,off]){ c.width=Math.round(W*DPR); c.height=Math.round(H*DPR); } draw(); viewChanged(); }
 const sx = x => W/2 + (x-view.cx)*view.s, sy = y => H/2 - (y-view.cy)*view.s;
@@ -379,6 +380,16 @@ function drawStreetLabels(v){
     ctx.save(); ctx.translate(X,Y); ctx.rotate(a); ctx.globalAlpha=.85; ctx.fillText(label,0,0); ctx.restore();
   }
 }
+/* green areas (data/green.json): rings in whole metres, later points as steps */
+function loadGreen(g){
+  GREEN = g.areas.map(rings => { const rs=rings.map(r => { const pts=[]; let x=r[0], y=r[1]; pts.push([x,y]);
+    for(let i=2;i<r.length;i+=2){ x+=r[i]; y+=r[i+1]; pts.push([x,y]); } return pts; }); return {rings:rs, ...bboxOf(rs[0])}; });
+}
+function fillGreen(c, v, color){   // one fill per area (even-odd keeps holes); skips patches too small to see
+  c.fillStyle=color;
+  for(const g of GREEN){ if(!meets(g,v) || ((g.x1-g.x0)*view.s<1.5 && (g.y1-g.y0)*view.s<1.5)) continue;
+    c.beginPath(); for(const r of g.rings) addRing(c,r,0,0); c.fill('evenodd'); }
+}
 function drawWater(v){
   ctx.fillStyle=colors.water;
   for(const w of WATER){ if(!meets(w,v)) continue; ctx.beginPath(); for(const r of w.rings) addRing(ctx,r,0,0); ctx.fill('evenodd'); }
@@ -397,6 +408,7 @@ function draw(){
   if(!W||!dayCache) return;
   const sun = sunPos(dateAt(minute),LAT0,LON0), near = view.s>=NEAR, v=viewRect();
   ctx.setTransform(DPR,0,0,DPR,0,0); ctx.fillStyle = near?colors.street:colors.land; ctx.fillRect(0,0,W,H);
+  fillGreen(ctx, v, near ? colors['green-sun'] : colors['green-far']);
   if (near){
     octx.setTransform(DPR,0,0,DPR,0,0); octx.clearRect(0,0,W,H);
     if (sun.alt>0.005){
@@ -410,6 +422,7 @@ function draw(){
           octx.moveTo(sx(q[0]),sy(q[1])); octx.lineTo(sx(q[2]),sy(q[3])); octx.lineTo(sx(q[4]),sy(q[5])); octx.lineTo(sx(q[6]),sy(q[7])); octx.closePath(); }
         octx.fill('nonzero');
       }
+      octx.globalCompositeOperation='source-atop'; fillGreen(octx, v, colors['green-shade']); octx.globalCompositeOperation='source-over';   // shade on grass
       ctx.drawImage(off,0,0,W,H);
     } else { ctx.globalAlpha=.9; ctx.fillStyle=colors.shade; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; }
   }
@@ -610,6 +623,7 @@ async function init(){
   if(index.updated) $('footer').textContent+=` Data from ${index.updated}.`;
   goNow();
   new ResizeObserver(resize).observe(wrap);
+  fetch(`${DATA}green.json`).then(r=>r.ok?r.json():null).then(g=>{ if(g){ loadGreen(g); draw(); } }).catch(()=>{});
   const hashD=parseInt(location.hash.slice(1));
   let saved=null; try{ saved=JSON.parse(store.get('view')||'null'); }catch(e){}
   if(DISTRICTS.some(x=>x.d===hashD)) jumpTo(hashD);
