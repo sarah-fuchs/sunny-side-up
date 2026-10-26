@@ -380,16 +380,29 @@ function drawStreetLabels(v){
     ctx.save(); ctx.translate(X,Y); ctx.rotate(a); ctx.globalAlpha=.85; ctx.fillText(label,0,0); ctx.restore();
   }
 }
-/* green areas (data/green.json): rings in whole metres, later points as steps */
+/* green areas (data/green.json): rings in whole metres, later points as steps.
+   Each area becomes a Path2D in metres once (plus a coarse one for zoomed-out views); drawing just scales them. */
 function loadGreen(g){
   const all = g.boxes ? Object.values(g.boxes).flat() : (g.areas||[]);
-  GREEN = all.map(rings => { const rs=rings.map(r => { const pts=[]; let x=r[0], y=r[1]; pts.push([x,y]);
-    for(let i=2;i<r.length;i+=2){ x+=r[i]; y+=r[i+1]; pts.push([x,y]); } return pts; }); return {rings:rs, ...bboxOf(rs[0])}; });
+  GREEN = all.map(rings => {
+    const rs=rings.map(r => { const pts=[]; let x=r[0], y=r[1]; pts.push([x,y]);
+      for(let i=2;i<r.length;i+=2){ x+=r[i]; y+=r[i+1]; pts.push([x,y]); } return pts; });
+    const bb=bboxOf(rs[0]), path=new Path2D(), lo=new Path2D();
+    for(const r of rs){
+      r.forEach(([x,y],i)=> i?path.lineTo(x,y):path.moveTo(x,y)); path.closePath();
+      let px=null,py=null, n=0;   // coarse: skip points closer than 25 m to the last one kept
+      for(const [x,y] of r){ if(px===null || Math.abs(x-px)+Math.abs(y-py)>25){ n?lo.lineTo(x,y):lo.moveTo(x,y); px=x; py=y; n++; } }
+      if(n) lo.closePath();
+    }
+    return {path, lo, ...bb};
+  });
 }
-function fillGreen(c, v, color){   // one fill per area (even-odd keeps holes); skips patches too small to see
-  c.fillStyle=color;
-  for(const g of GREEN){ if(!meets(g,v) || ((g.x1-g.x0)*view.s<1.5 && (g.y1-g.y0)*view.s<1.5)) continue;
-    c.beginPath(); for(const r of g.rings) addRing(c,r,0,0); c.fill('evenodd'); }
+function fillGreen(c, v, color){   // even-odd keeps holes; patches too small to see are skipped
+  if(!GREEN.length) return;
+  const s=view.s, min = s<0.04 ? 6 : s<0.15 ? 3 : 1.5, coarse = s<0.15;
+  c.save(); c.setTransform(DPR*s,0,0,-DPR*s, DPR*(W/2-view.cx*s), DPR*(H/2+view.cy*s)); c.fillStyle=color;
+  for(const g of GREEN){ if(!meets(g,v) || ((g.x1-g.x0)*s<min && (g.y1-g.y0)*s<min)) continue; c.fill(coarse?g.lo:g.path,'evenodd'); }
+  c.restore();
 }
 function drawWater(v){
   ctx.fillStyle=colors.water;
