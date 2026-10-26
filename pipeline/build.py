@@ -864,14 +864,27 @@ def build_tiles(redo=False, max_minutes=280):
 
 GREEN_SIMPLIFY_M = 1.5
 GREEN_MIN_M2 = 200
-GREEN_QUERY = """[out:json][timeout:600][maxsize:1073741824];
-area["name"="Wien"]["admin_level"="4"]->.a;
-(
- nwr["leisure"~"^(park|garden|playground|recreation_ground|nature_reserve|dog_park|golf_course)$"](area.a);
- nwr["landuse"~"^(grass|forest|meadow|recreation_ground|village_green|cemetery|allotments|vineyard|orchard|flowerbed)$"](area.a);
- nwr["natural"~"^(wood|scrub|grassland|heath)$"](area.a);
-);
-out geom;"""
+# three smaller queries instead of one big one (the big one timed out on overpass-api.de)
+GREEN_FILTERS = {
+    "leisure": '["leisure"~"^(park|garden|playground|recreation_ground|nature_reserve|dog_park|golf_course)$"]',
+    "landuse": '["landuse"~"^(grass|forest|meadow|recreation_ground|village_green|cemetery|allotments|vineyard|orchard|flowerbed)$"]',
+    "natural": '["natural"~"^(wood|scrub|grassland|heath)$"]',
+}
+OVERPASS_MIRRORS = ["https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
+
+
+def overpass_any(query, key):
+    """Overpass with fallback to mirrors when the main server is busy."""
+    last = None
+    for url in [OVERPASS] + OVERPASS_MIRRORS:
+        try:
+            return http_json(url, data={"data": query}, kind="osm", key=key, tries=2)
+        except FileNotFoundError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            log(f"  {url} failed: {str(e)[:200]}")
+            last = e
+    raise last
 
 
 def _green_ring(ring):
@@ -886,9 +899,21 @@ def _green_ring(ring):
 
 def load_green():
     log("Fetching green areas …")
-    j = overpass(GREEN_QUERY, "green")
+    elements, seen = [], set()
+    for name, flt in GREEN_FILTERS.items():
+        q = f"""[out:json][timeout:900][maxsize:1073741824];
+area["name"="Wien"]["admin_level"="4"]->.a;
+nwr{flt}(area.a);
+out geom;"""
+        got = overpass_any(q, f"green_{name}").get("elements", [])
+        log(f"  {name}: {len(got)} elements")
+        for el in got:
+            k = (el["type"], el.get("id"))
+            if el.get("id") is None or k not in seen:
+                seen.add(k)
+                elements.append(el)
     areas, n_pts = [], 0
-    for el in j.get("elements", []):
+    for el in elements:
         if el["type"] == "way":
             g = [(p["lon"], p["lat"]) for p in el.get("geometry") or []]
             outers, inners = ([g] if len(g) >= 4 and g[0] == g[-1] else []), []
