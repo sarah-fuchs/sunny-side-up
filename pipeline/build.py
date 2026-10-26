@@ -897,38 +897,11 @@ def _green_ring(ring):
     return simplify_xy(pts, GREEN_SIMPLIFY_M)
 
 
-def load_green():
-    log("Fetching green areas …")
-    # Vienna in a 3×3 grid of boxes, every green filter per box: small requests the servers can manage
-    w0, s0, e0, n0 = VIENNA_BBOX
-    flt = "\n".join(f" nwr{f}({{bbox}});" for f in GREEN_FILTERS.values())
-    elements, seen, fails = [], set(), []
-    for i in range(3):
-        for k in range(3):
-            w, e = w0 + (e0 - w0) * i / 3, w0 + (e0 - w0) * (i + 1) / 3
-            s_, n = s0 + (n0 - s0) * k / 3, s0 + (n0 - s0) * (k + 1) / 3
-            box = f"{s_:.5f},{w:.5f},{n:.5f},{e:.5f}"
-            q = f"""[out:json][timeout:900][maxsize:1073741824];
-(
-{flt.replace("{bbox}", box)}
-);
-out geom;"""
-            try:
-                got = overpass_any(q, f"green_{i}_{k}").get("elements", [])
-            except FileNotFoundError:
-                got = []  # offline test without this box
-            except Exception as e:  # noqa: BLE001
-                fails.append(f"{i}_{k}: {str(e)[:120]}")
-                continue
-            log(f"  box {i}_{k}: {len(got)} elements")
-            for el in got:
-                key = (el["type"], el.get("id"))
-                if el.get("id") is None or key not in seen:
-                    seen.add(key)
-                    elements.append(el)
-    if fails:
-        raise RuntimeError(f"{len(fails)} of 9 boxes failed: " + " | ".join(fails))
-    areas, n_pts = [], 0
+GREEN_GRID = 4  # Vienna's bbox cut into GREEN_GRID × GREEN_GRID boxes, one Overpass request each
+
+
+def _green_areas(elements):
+    areas = []
     for el in elements:
         if el["type"] == "way":
             g = [(p["lon"], p["lat"]) for p in el.get("geometry") or []]
@@ -951,24 +924,57 @@ out geom;"""
             xs, ys = [p[0] for p in o], [p[1] for p in o]
             mine = [h for h in holes if min(xs) <= h[0][0] <= max(xs) and min(ys) <= h[0][1] <= max(ys)]
             areas.append([encode_line(ring, 0, 0, scale=1) for ring in [o] + mine])
-            n_pts += sum(len(ring) for ring in [o] + mine)
-    log(f"  {len(areas)} green areas, {n_pts} points")
     return areas
 
 
-def write_green():
+def write_green(redo=False):
+    """data/green.json, box by box: {"updated", "grid", "boxes": {"i_k": [areas]}}. Boxes that fail are fetched
+    by the next run; an area crossing boxes may appear in more than one (drawn twice, harmless)."""
     path = os.path.join(OUT, "green.json")
+    old = {} if redo else _read_json(path)
+    boxes = dict(old.get("boxes", {})) if old.get("grid") == GREEN_GRID else {}
+    w0, s0, e0, n0 = VIENNA_BBOX
+    flt = "\n".join(f" nwr{f}({{bbox}});" for f in GREEN_FILTERS.values())
+    todo = [(i, k) for i in range(GREEN_GRID) for k in range(GREEN_GRID) if f"{i}_{k}" not in boxes]
+    log(f"Fetching green areas: {len(todo)} of {GREEN_GRID * GREEN_GRID} boxes …")
+    fails = []
+    for i, k in todo:
+        w, e = w0 + (e0 - w0) * i / GREEN_GRID, w0 + (e0 - w0) * (i + 1) / GREEN_GRID
+        s_, n = s0 + (n0 - s0) * k / GREEN_GRID, s0 + (n0 - s0) * (k + 1) / GREEN_GRID
+        box = f"{s_:.5f},{w:.5f},{n:.5f},{e:.5f}"
+        q = f"""[out:json][timeout:900][maxsize:1073741824];
+(
+{flt.replace("{bbox}", box)}
+);
+out geom;"""
+        try:
+            got = overpass_any(q, f"green_{i}_{k}").get("elements", [])
+        except FileNotFoundError:
+            got = []  # offline test without this box
+        except Exception as ex:  # noqa: BLE001
+            fails.append(f"{i}_{k}: {str(ex)[:100]}")
+            continue
+        boxes[f"{i}_{k}"] = _green_areas(got)
+        log(f"  box {i}_{k}: {len(got)} elements → {len(boxes[f'{i}_{k}'])} areas")
+        with open(path, "w", encoding="utf-8") as f:  # save after every box
+            json.dump({"updated": time.strftime("%Y-%m-%d"), "grid": GREEN_GRID, "boxes": dict(sorted(boxes.items()))},
+                      f, separators=(",", ":"))
+    n_areas = sum(len(v) for v in boxes.values())
+    mb = os.path.getsize(path) / 1e6 if os.path.exists(path) else 0
+    msg = f"{len(boxes)} of {GREEN_GRID * GREEN_GRID} boxes, {n_areas} areas, {mb:.2f} MB"
+    log(f"green: {msg}")
+    if fails:
+        annotate("warning", "Green areas: some boxes failed", f"{msg}. Failed: " + " | ".join(fails)[:600] + ". Run 'city' again to fetch them.")
+    else:
+        annotate("notice", "Green areas", msg)
+
+
+def _read_json(path):
     try:
-        areas = load_green()
-    except Exception as e:  # keep what we had
-        log(f"green failed, keeping previous: {e}")
-        annotate("warning", "Green areas not updated", str(e)[:300])
-        return
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump({"updated": time.strftime("%Y-%m-%d"), "areas": areas}, f, separators=(",", ":"))
-    mb = os.path.getsize(path) / 1e6
-    log(f"wrote {os.path.relpath(path, ROOT)}: {len(areas)} areas ({mb:.2f} MB)")
-    annotate("notice", "Green areas", f"{len(areas)} areas, {mb:.2f} MB")
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
 def main():

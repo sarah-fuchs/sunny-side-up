@@ -179,7 +179,8 @@ def main():
     ]}
     for i, el in enumerate(green["elements"]):
         el["id"] = 500 + i
-    dump("osm_green_1_1.json", green)  # the centre box of the 3×3 grid; the other boxes have no fixture
+    # served as box 1_2 of the 4×4 grid (which box does not matter offline)
+    dump("osm_green_1_2.json", green)
     print("fixtures written to", FX)
 
 

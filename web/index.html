@@ -382,7 +382,8 @@ function drawStreetLabels(v){
 }
 /* green areas (data/green.json): rings in whole metres, later points as steps */
 function loadGreen(g){
-  GREEN = g.areas.map(rings => { const rs=rings.map(r => { const pts=[]; let x=r[0], y=r[1]; pts.push([x,y]);
+  const all = g.boxes ? Object.values(g.boxes).flat() : (g.areas||[]);
+  GREEN = all.map(rings => { const rs=rings.map(r => { const pts=[]; let x=r[0], y=r[1]; pts.push([x,y]);
     for(let i=2;i<r.length;i+=2){ x+=r[i]; y+=r[i+1]; pts.push([x,y]); } return pts; }); return {rings:rs, ...bboxOf(rs[0])}; });
 }
 function fillGreen(c, v, color){   // one fill per area (even-odd keeps holes); skips patches too small to see
