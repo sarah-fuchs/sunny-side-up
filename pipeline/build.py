@@ -899,19 +899,35 @@ def _green_ring(ring):
 
 def load_green():
     log("Fetching green areas …")
-    elements, seen = [], set()
-    for name, flt in GREEN_FILTERS.items():
-        q = f"""[out:json][timeout:900][maxsize:1073741824];
-area["name"="Wien"]["admin_level"="4"]->.a;
-nwr{flt}(area.a);
+    # Vienna in a 3×3 grid of boxes, every green filter per box: small requests the servers can manage
+    w0, s0, e0, n0 = VIENNA_BBOX
+    flt = "\n".join(f" nwr{f}({{bbox}});" for f in GREEN_FILTERS.values())
+    elements, seen, fails = [], set(), []
+    for i in range(3):
+        for k in range(3):
+            w, e = w0 + (e0 - w0) * i / 3, w0 + (e0 - w0) * (i + 1) / 3
+            s_, n = s0 + (n0 - s0) * k / 3, s0 + (n0 - s0) * (k + 1) / 3
+            box = f"{s_:.5f},{w:.5f},{n:.5f},{e:.5f}"
+            q = f"""[out:json][timeout:900][maxsize:1073741824];
+(
+{flt.replace("{bbox}", box)}
+);
 out geom;"""
-        got = overpass_any(q, f"green_{name}").get("elements", [])
-        log(f"  {name}: {len(got)} elements")
-        for el in got:
-            k = (el["type"], el.get("id"))
-            if el.get("id") is None or k not in seen:
-                seen.add(k)
-                elements.append(el)
+            try:
+                got = overpass_any(q, f"green_{i}_{k}").get("elements", [])
+            except FileNotFoundError:
+                got = []  # offline test without this box
+            except Exception as e:  # noqa: BLE001
+                fails.append(f"{i}_{k}: {str(e)[:120]}")
+                continue
+            log(f"  box {i}_{k}: {len(got)} elements")
+            for el in got:
+                key = (el["type"], el.get("id"))
+                if el.get("id") is None or key not in seen:
+                    seen.add(key)
+                    elements.append(el)
+    if fails:
+        raise RuntimeError(f"{len(fails)} of 9 boxes failed: " + " | ".join(fails))
     areas, n_pts = [], 0
     for el in elements:
         if el["type"] == "way":

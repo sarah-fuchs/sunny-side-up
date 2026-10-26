@@ -179,8 +179,7 @@ def main():
     ]}
     for i, el in enumerate(green["elements"]):
         el["id"] = 500 + i
-    for name in ("leisure", "landuse", "natural"):
-        dump(f"osm_green_{name}.json", {"elements": [el for el in green["elements"] if name in el["tags"]]})
+    dump("osm_green_1_1.json", green)  # the centre box of the 3×3 grid; the other boxes have no fixture
     print("fixtures written to", FX)
 
 
