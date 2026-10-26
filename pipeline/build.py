@@ -643,6 +643,8 @@ def write_city(fetch_water=True):
         except Exception as e:  # keep the old water rather than failing the whole run
             log(f"water failed, keeping previous: {e}")
             annotate("warning", "Water not updated", str(e)[:300])
+    if fetch_water:
+        write_green()
     city = {"updated": index.get("updated"), "center": list(CITY_CENTER), "terraces": terraces, "water": water}
     with open(city_path, "w", encoding="utf-8") as f:
         json.dump(city, f, ensure_ascii=False, separators=(",", ":"))
@@ -676,11 +678,11 @@ def tile_range():
             for ix in range(math.floor(x0 / TILE_M), math.floor(x1 / TILE_M) + 1)]
 
 
-def encode_line(pts, ox, oy):
-    """[(x, y) metres] → [x0, y0, dx1, dy1, …] in decimetres from (ox, oy); repeated points dropped."""
+def encode_line(pts, ox, oy, scale=10):
+    """[(x, y) metres] → [x0, y0, dx1, dy1, …] in decimetres (scale 10) from (ox, oy); repeated points dropped."""
     out, px, py = [], None, None
     for x, y in pts:
-        X, Y = round((x - ox) * 10), round((y - oy) * 10)
+        X, Y = round((x - ox) * scale), round((y - oy) * scale)
         if px is None:
             out += [X, Y]
         elif X != px or Y != py:
@@ -851,6 +853,81 @@ def build_tiles(redo=False, max_minutes=280):
     total = sum(tiles.values())
     annotate("notice", "Tiles", f"Fetched {len(done)} tiles this run; {len(tiles)} tiles with {total} buildings in all; {len(failed)} not done.")
     return done, failed
+
+
+# ---------------------------------------------------------------- green areas (OpenStreetMap)
+#
+# data/green.json: parks, gardens, meadows, forests, vineyards, cemeteries, allotments … for the whole city,
+#   {"updated": "YYYY-MM-DD", "areas": [[outer, hole, …], …]}
+# each ring flat [x0, y0, dx1, dy1, …] in whole metres in the city projection (centre CITY_CENTER),
+# later points as steps from the previous one. Simplified to GREEN_SIMPLIFY_M, pieces under GREEN_MIN_M2 dropped.
+
+GREEN_SIMPLIFY_M = 1.5
+GREEN_MIN_M2 = 200
+GREEN_QUERY = """[out:json][timeout:600][maxsize:1073741824];
+area["name"="Wien"]["admin_level"="4"]->.a;
+(
+ nwr["leisure"~"^(park|garden|playground|recreation_ground|nature_reserve|dog_park|golf_course)$"](area.a);
+ nwr["landuse"~"^(grass|forest|meadow|recreation_ground|village_green|cemetery|allotments|vineyard|orchard|flowerbed)$"](area.a);
+ nwr["natural"~"^(wood|scrub|grassland|heath)$"](area.a);
+);
+out geom;"""
+
+
+def _green_ring(ring):
+    """[(lon, lat)] closed → simplified [(x, y)] metres in the city projection, or None if too small."""
+    pts = [CITY.xy(lon, lat) for lon, lat in ring]
+    if len(pts) > 1 and pts[0] == pts[-1]:
+        pts = pts[:-1]
+    if len(pts) < 3 or abs(_ring_area(pts)) < GREEN_MIN_M2:
+        return None
+    return simplify_xy(pts, GREEN_SIMPLIFY_M)
+
+
+def load_green():
+    log("Fetching green areas …")
+    j = overpass(GREEN_QUERY, "green")
+    areas, n_pts = [], 0
+    for el in j.get("elements", []):
+        if el["type"] == "way":
+            g = [(p["lon"], p["lat"]) for p in el.get("geometry") or []]
+            outers, inners = ([g] if len(g) >= 4 and g[0] == g[-1] else []), []
+        elif el["type"] == "relation":
+            ow = [[(p["lon"], p["lat"]) for p in m.get("geometry") or []] for m in el.get("members", [])
+                  if m.get("type") == "way" and m.get("role", "outer") in ("outer", "")]
+            iw = [[(p["lon"], p["lat"]) for p in m.get("geometry") or []] for m in el.get("members", [])
+                  if m.get("type") == "way" and m.get("role") == "inner"]
+            outers, inners = _join_ways(ow), _join_ways(iw)
+        else:
+            continue
+        holes = [h for h in (_green_ring(r) for r in inners) if h]
+        for r in outers:
+            if not _in_vienna(r):
+                continue
+            o = _green_ring(r)
+            if not o:
+                continue
+            xs, ys = [p[0] for p in o], [p[1] for p in o]
+            mine = [h for h in holes if min(xs) <= h[0][0] <= max(xs) and min(ys) <= h[0][1] <= max(ys)]
+            areas.append([encode_line(ring, 0, 0, scale=1) for ring in [o] + mine])
+            n_pts += sum(len(ring) for ring in [o] + mine)
+    log(f"  {len(areas)} green areas, {n_pts} points")
+    return areas
+
+
+def write_green():
+    path = os.path.join(OUT, "green.json")
+    try:
+        areas = load_green()
+    except Exception as e:  # keep what we had
+        log(f"green failed, keeping previous: {e}")
+        annotate("warning", "Green areas not updated", str(e)[:300])
+        return
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"updated": time.strftime("%Y-%m-%d"), "areas": areas}, f, separators=(",", ":"))
+    mb = os.path.getsize(path) / 1e6
+    log(f"wrote {os.path.relpath(path, ROOT)}: {len(areas)} areas ({mb:.2f} MB)")
+    annotate("notice", "Green areas", f"{len(areas)} areas, {mb:.2f} MB")
 
 
 def main():

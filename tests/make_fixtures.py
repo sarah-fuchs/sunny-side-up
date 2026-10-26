@@ -168,6 +168,15 @@ def main():
         {"type": "way", "tags": {"natural": "water"}, "geometry": pond},
         {"type": "way", "tags": {"waterway": "river", "name": "Testbach"}, "geometry": [ll(-400, 120), ll(0, 140), ll(400, 120)]},
     ]})
+    dump("osm_green.json", {"elements": [
+        {"type": "way", "tags": {"leisure": "park"}, "geometry": [ll(-140, 60), ll(-60, 60), ll(-60, 130), ll(-140, 130), ll(-140, 60)]},
+        {"type": "way", "tags": {"leisure": "garden"}, "geometry": [ll(20, -20), ll(36, -20), ll(36, -8), ll(20, -8), ll(20, -20)]},
+        {"type": "way", "tags": {"landuse": "grass"}, "geometry": [ll(0, 0), ll(5, 0), ll(5, 5), ll(0, 5), ll(0, 0)]},
+        {"type": "relation", "tags": {"natural": "wood"}, "members": [
+            {"type": "way", "role": "outer", "geometry": [ll(150, 150), ll(330, 150), ll(330, 230)]},
+            {"type": "way", "role": "outer", "geometry": [ll(330, 230), ll(150, 230), ll(150, 150)]},
+            {"type": "way", "role": "inner", "geometry": [ll(200, 180), ll(240, 180), ll(240, 200), ll(200, 200), ll(200, 180)]}]},
+    ]})
     print("fixtures written to", FX)
 
 
