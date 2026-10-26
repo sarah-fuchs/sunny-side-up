@@ -777,9 +777,8 @@ def build_tiles(redo=False, max_minutes=280):
 
     def save():
         with open(idx_path, "w", encoding="utf-8") as f:
-            keep = {k: idx[k] for k in ("trees", "treesDone", "treesUpdated") if k in idx}
             json.dump({"size": TILE_M, "center": list(CITY_CENTER), "updated": time.strftime("%Y-%m-%d"),
-                       "tiles": dict(sorted(tiles.items())), "empty": sorted(empty), **keep}, f, separators=(",", ":"))
+                       "tiles": dict(sorted(tiles.items())), "empty": sorted(empty)}, f, separators=(",", ":"))
 
     todo = [(ix, iy) for ix, iy in tile_range() if f"{ix}_{iy}" not in tiles and f"{ix}_{iy}" not in empty]
     todo.sort(key=lambda k: (k[0] + .5) ** 2 + (k[1] + .5) ** 2)  # city centre first, outskirts last
@@ -828,13 +827,9 @@ def build_tiles(redo=False, max_minutes=280):
         ox, oy = ix * TILE_M, iy * TILE_M
         s = [{"i": sid, "n": name, "l": encode_line(pts, ox, oy)} for sid, name, pts, _ in sgrid.get((ix, iy), [])]
         path = os.path.join(tiles_dir, f"{key}.json")
-        old_trees = _read_tile(path).get("t")
-        if b or old_trees:
-            data = {"x": ix, "y": iy, "b": b, "s": s}
-            if old_trees:
-                data["t"] = old_trees  # trees come from --trees; keep them
+        if b:
             with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+                json.dump({"x": ix, "y": iy, "b": b, "s": s}, f, ensure_ascii=False, separators=(",", ":"))
             tiles[key] = len(b)
             empty.discard(key)
         else:
@@ -858,136 +853,6 @@ def build_tiles(redo=False, max_minutes=280):
     return done, failed
 
 
-# ---------------------------------------------------------------- trees (Baumkataster) into the map tiles
-#
-# Every tree of the city's tree register goes into the tile that holds it, as flat triplets
-#   "t": [x, y, code, x, y, code, ...]
-# x, y in decimetres from the tile's south-west corner; code = height class * 10 + crown class,
-# plus 100 for evergreens (conifers etc.). Height classes: 1 = 0–5 m, 2 = 6–10 m, … 7 = 31–35 m
-# (5 m steps); crown classes: 1 = 0–3 m, 2 = 4–6 m, … 7 = 19–21 m, 8 = over 21 m (3 m steps).
-# Unknown height or crown (class 0) is skipped.
-
-EVERGREEN = {"pinus", "picea", "abies", "taxus", "thuja", "chamaecyparis", "juniperus", "cedrus", "pseudotsuga",
-             "tsuga", "cupressus", "cupressocyparis", "sequoiadendron", "sequoia", "cryptomeria", "calocedrus",
-             "platycladus", "ilex", "magnolia grandiflora"}
-
-
-def _read_tile(path):
-    try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-
-def is_evergreen(species):
-    sp = (species or "").lower().replace("×", "").replace(" x ", " ").strip()
-    genus = sp.split(" ")[0] if sp else ""
-    return genus in EVERGREEN or " ".join(sp.split(" ")[:2]) in EVERGREEN
-
-
-def _tree_rows(feats, ix, iy):
-    """Flat [x, y, code, ...] for the trees of one tile (points outside the tile are left to their own tile)."""
-    out = []
-    for f in feats:
-        g = f.get("geometry") or {}
-        p = f.get("properties", {})
-        if g.get("type") != "Point":
-            continue
-        try:
-            h, c = int(p.get("BAUMHOEHE") or 0), int(p.get("KRONENDURCHMESSER") or 0)
-        except (TypeError, ValueError):
-            continue
-        if not (1 <= h <= 9 and 1 <= c <= 9):
-            continue  # height or crown size not known
-        x, y = CITY.xy(*g["coordinates"][:2])
-        if math.floor(x / TILE_M) != ix or math.floor(y / TILE_M) != iy:
-            continue
-        out += [round((x - ix * TILE_M) * 10), round((y - iy * TILE_M) * 10),
-                h * 10 + c + (100 if is_evergreen(p.get("GATTUNG_ART")) else 0)]
-    return out
-
-
-def fetch_tile_trees(ix, iy):
-    x0, y0 = ix * TILE_M, iy * TILE_M
-    w, s = CITY.ll(x0, y0)
-    e, n = CITY.ll(x0 + TILE_M, y0 + TILE_M)
-    bbox = f"{s:.6f},{w:.6f},{n:.6f},{e:.6f},urn:ogc:def:crs:EPSG::4326"
-    try:
-        feats = wfs("ogdwien:BAUMKATOGD", {"bbox": bbox, "sortBy": "OBJECTID"}, page=5000,
-                    key=f"trees_{ix}_{iy}".replace("-", "m"), timeout=180)
-    except FileNotFoundError:
-        if FIXTURES:
-            return []
-        raise
-    return _tree_rows(feats, ix, iy)
-
-
-def build_trees(redo=False, max_minutes=280):
-    """Put the tree register into the map tiles, tile by tile (run after --tiles; carries on where it stopped)."""
-    tiles_dir = os.path.join(OUT, TILES_DIR)
-    idx_path = os.path.join(OUT, "tiles.json")
-    idx = _read_tile(idx_path)
-    if not idx.get("tiles"):
-        raise RuntimeError("no tiles.json yet: run --tiles first")
-    tiles, empty = dict(idx["tiles"]), set(idx.get("empty", []))
-    done_set = set() if redo else set(idx.get("treesDone", []))
-    total = 0 if redo else int(idx.get("trees") or 0)
-
-    def save():
-        idx.update({"tiles": dict(sorted(tiles.items())), "empty": sorted(empty), "trees": total,
-                    "treesDone": sorted(done_set), "treesUpdated": time.strftime("%Y-%m-%d")})
-        with open(idx_path, "w", encoding="utf-8") as f:
-            json.dump(idx, f, separators=(",", ":"))
-
-    # every tile whose buildings were fetched, with or without buildings (parks can be tree-only)
-    todo = [k for k in sorted(set(tiles) | empty) if k not in done_set]
-    todo.sort(key=lambda k: sum((int(v) + .5) ** 2 for v in k.split("_")))  # centre first
-    log(f"Trees: {len(todo)} tiles to do ({len(done_set)} done)")
-    t_start, n_done, fails, failed = time.time(), 0, 0, []
-    for n, key in enumerate(todo):
-        if time.time() - t_start > max_minutes * 60:
-            annotate("warning", "Trees: time is up", f"{len(todo) - n} tiles left. Run 'trees' again to carry on.")
-            failed += todo[n:]
-            break
-        ix, iy = (int(v) for v in key.split("_"))
-        try:
-            t = fetch_tile_trees(ix, iy)
-            fails = 0
-        except Exception as e:  # noqa: BLE001
-            log(f"Trees {key} FAILED: {e}")
-            failed.append(key)
-            fails += 1
-            if fails >= 5:
-                annotate("error", "Trees stopped: 5 failures in a row", f"After {n_done} tiles. Last error: {str(e)[:400]}. Run 'trees' again later.")
-                failed += todo[n + 1:]
-                break
-            continue
-        path = os.path.join(tiles_dir, f"{key}.json")
-        data = _read_tile(path)
-        old = len(data.get("t", [])) // 3
-        if t or data:
-            if not data:
-                data = {"x": ix, "y": iy, "b": [], "s": []}
-            if t:
-                data["t"] = t
-            else:
-                data.pop("t", None)
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
-            tiles.setdefault(key, len(data["b"]))
-            empty.discard(key)
-        total += len(t) // 3 - old
-        done_set.add(key)
-        n_done += 1
-        if n_done % 100 == 0:
-            annotate("notice", f"Trees: {n_done} of {len(todo)}", f"{total} trees so far, {time.time() - t_start:.0f} s")
-        save()
-    save()
-    annotate("notice", "Trees", f"{n_done} tiles this run, {total} trees in all, {len(failed)} tiles not done.")
-    return n_done, failed
-
-
 def main():
     global FIXTURES, OUT
     ap = argparse.ArgumentParser()
@@ -997,8 +862,6 @@ def main():
     ap.add_argument("--no-water", action="store_true", help="don't fetch water; keep what city.json has")
     ap.add_argument("--tiles", action="store_true", help="fetch the map tiles (every building) that aren't done yet")
     ap.add_argument("--tiles-all", action="store_true", help="fetch all map tiles again")
-    ap.add_argument("--trees", action="store_true", help="put the city's tree register into the map tiles (carries on where it stopped)")
-    ap.add_argument("--trees-all", action="store_true", help="fetch the trees of every tile again")
     ap.add_argument("--max-minutes", type=int, default=280, help="stop fetching tiles after this long (default 280)")
     ap.add_argument("--fixtures", help="read cached responses from this folder (offline tests)")
     ap.add_argument("--out", default=OUT, help="output data folder (default web/data)")
@@ -1007,12 +870,6 @@ def main():
     OUT = a.out
     wanted = a.districts or sorted(DISTRICTS)
     os.makedirs(os.path.join(OUT, "districts"), exist_ok=True)
-    if a.trees or a.trees_all:
-        n_done, failed = build_trees(redo=a.trees_all, max_minutes=a.max_minutes)
-        log(f"trees: {n_done} tiles done; not done: {len(failed)}")
-        if failed and not n_done:
-            sys.exit(1)
-        return
     if a.tiles or a.tiles_all:
         done, failed = build_tiles(redo=a.tiles_all, max_minutes=a.max_minutes)
         log(f"tiles done: {len(done)}; not done: {len(failed)}")

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       districts:
-        description: "District numbers, space separated. Empty = all 23. 'missing' = only districts without data yet. 'city' = only the city overview and water. 'tiles' = map tiles with every building (carries on where it stopped), 'tiles-all' = all tiles again. 'trees' = put the tree register into the tiles."
+        description: "District numbers, space separated. Empty = all 23. 'missing' = only districts without data yet. 'city' = only the city overview and water. 'tiles' = map tiles with every building (carries on where it stopped), 'tiles-all' = all tiles again."
         required: false
         default: ""
   schedule:
@@ -45,8 +45,6 @@ jobs:
             python pipeline/build.py --tiles
           elif [ "$DISTRICTS" = "tiles-all" ]; then
             python pipeline/build.py --tiles-all
-          elif [ "$DISTRICTS" = "trees" ]; then
-            python pipeline/build.py --trees
           else
             python pipeline/build.py $DISTRICTS
           fi
