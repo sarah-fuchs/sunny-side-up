@@ -878,7 +878,7 @@ def overpass_any(query, key):
     last = None
     for url in [OVERPASS] + OVERPASS_MIRRORS:
         try:
-            return http_json(url, data={"data": query}, kind="osm", key=key, tries=2)
+            return http_json(url, data={"data": query}, kind="osm", key=key, tries=2, timeout=900)
         except FileNotFoundError:
             raise
         except Exception as e:  # noqa: BLE001
